@@ -1,0 +1,49 @@
+Alex Chen
+005299047
+Assignment 1
+Lab
+
+-----------
+
+1. [man -k "string"] will print all the commands that have the specific "string" in the description portion of their manual page. The man page for the man command, [man man], explains this.
+
+2. The mv program is located at "/usr/local/cs/bin/mv" while the sh program is located at "/usr/bin/sh". I used the which command to find these programs ([which mv] and [which sh]).
+
+3. "/usr/bin/tr", "/usr/bin/ar", and "/usr/bin/pr" are the three executable programs in "/usr/bin" whose names are two characters long and end with an 'r'. After reading through the manual page for the find command, I decided to use the command, [find /usr/bin -name "?r" -executable], to find these executables. To determine their functions, I used the [man "keyword"] command, replacing "keyword" with "tr", "ar", and "pr".
+  - "/usr/bin/tr" will translate or delete characters from standard input and write to standard output.
+  - "/usr/bin/ar" will create, modify, and extract from archives, which are single files holding a collection of other files.
+  - "/usr/bin/pr" will convert text files to pages or columns for printing purposes.
+
+4. "/usr/bin/emacs-24.3" is the file that is actually executed. I used the command [man -k "symbolic link"] to find all commands relating to symbolic links. Then, I found the command [readlink] which will print out the symbolic link of a file. Then, I executed the command [readlink /usr/bin/emacs] to arrive to "/etc/alternatives/emacs", after which I issued the command [readlink /etc/alternatives/emacs] to arrive at the hard link.
+
+5. "/usr/bin/gcc" has the version 4.8.5. "gcc" itself has version 9.3.0. The difference is because "gcc" itself is located at "/usr/local/cs/bin/gcc", so this is a different file. Searching for "gcc" itself is acceptable because it searches through the $PATH environment variable, of which "/usr/local/cs/bin" is the first directory to contain "gcc." I used the ["keyword" -v] command, replacing keyword with "/usr/bin/gcc" and "gcc" to find the version number of each program.
+
+6. The symbolic mode "u+sx" means whoever attempts to access or execute a file has the same permissions as the user/owner of the file, as well as an added permission to execute. The symbolic mode "o-w" means taking away writing permission from anyone who is not the owner of a file or a member of the group.
+
+7. There are 446 total directories within, and including, the directory "/usr/local/cs" that have been modified within the last four weeks. I first issued the command [find /usr/local/cs -mtime -28 -type d] to list all the directories within "/usr/local/cs" that have been modified within 28 days. Then, to find the total number of entries, I ran the command once more, after recording the first five entries, followed by a second command. The whole command was then [find /usr/local/cs -mtime -28 -type d | wc -l]. This command converts the standard output from the first find command into the standard input into the [wc -l] command, which counts the total number of newlines outputted by the find command. The first five entries are:
+  - "/usr/local/cs"
+  - "/usr/local/cs/src/git"
+  - "/usr/local/cs/src/git/RCS"
+  - "/usr/local/cs/src/git/coreutils"
+  - "/usr/local/cs/src/git/coreutils/RCS"
+
+8. There are 303 symbolic links in the "/usr/bin" directory, which is the directory that contains "find". I first used [which find] to find the location of the find executable. Then, I ran the command [find /usr/bin -type l | wc -l] to print out all the symbolic links in the "/usr/bin" directory and then count the number of newlines, indicating the total number of symbolic links.
+
+9. "librom1394.so.0.3.0" is the oldest file within "/usr/lib64". It was modified on Dec 28, 2013. I used the command [ls -alt /usr/lib64 | grep ^-] to list all regular files in the order from newest to oldest. [ls -a] will list all, including hidden, directory content within "/usr/lib64". [ls -l] will add other information about these files, including modification time and type of file. Then, adding the "t" specification will order all of the directory content from newest to oldest based on time of modification. Adding the [| grep ^-] will further narrow down the output to regular files only, as only the results that start with "-" will be displayed.
+
+10. From [man locale], it is shown that locale gets its information from "the settings of the environmental variables that control the locale."
+
+11. In Emacs, I inputted C-h a, and then searched for the keyword "downcase." The resulting commands were downcase-dwim [M-x ... RET], downcase-region [C-x C-l], and downcase-word [M-l].
+
+12. In Emacs, here are what each of the following commands does. I used the command [C-h k] to input each of these commands to arrive at a description of each's function. To find the command of [C-h k], I entered the Emacs manual. Then I inputted [C-s] to search for "describe." From that, I found a match that gave me the command [C-h k].
+  - [C-M-r]: ("isearch-backward-regexp") does an "incremental search backward" for a regular expression. It does a regular string search if a prefix is given as the argument.
+  - [C-M-s]: ("isearch-forward-regexp") does an "incremental search forward" for a regular expression. It does a regular string search when given a prefix argument.
+  - [C-M-t]: ("transpose-sexps") is like C-t, but applies to sexps. [C-t] interchanges characters around point, and then moves forward one character. Thus, [C-M-t] interchanges words/sexps around a point.
+  - [C-M-u]: ("backward-up-list") moves "backward out of one level of parentheses."
+  - [C-M-v]: ("scroll-other-window") scrolls the next window upward by a specified number of lines, or by near a full screen amount if no argument is specified.
+
+13. I used the [C-h k] command again to find the function of [C-g], which is to directly quit during execution of Lisp code. At the top-level as an editor command, "this simply beeps." In other words, if one is in the middle of entering a command, inputting [C-g] will end the command.
+
+14. I used the [C-h f] command to describe a function using "yank." The "yank" command is invoked through [C-y], and it will "reinsert the last stretch of killed text," and the last stretch of killed text is the most recent killed or yanked text. Essentially, this is how one can paste previously copied/cut text.
+
+15. I went to the Emacs manual then invoked [C-s] to search for the keyword "dired." Then, I entered the specific guide for the "dired" command, which is shows that "dired" is invoked through [C-x d], followed by inputting "/usr/bin". Then, after exiting Emacs, I ran the command [ls -l /usr/bin] and compared the output. The "dired" command showed that there were 3500340 files in the "/usr/bin" directory, while the [ls -l] yielded a total of 350252 files. Thus, the "dired" command shows hidden files. Furthermore, the "dired" command allows the user to enter and interact with any of the listed files, while [ls -l] does not.

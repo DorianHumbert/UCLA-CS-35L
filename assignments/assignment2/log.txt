@@ -1,0 +1,30 @@
+Alex Chen
+005299047
+Assignment 2
+Lab
+
+------------
+
+1) Secure Shell to the SEAS linux server (09, acting as my client)
+	[ssh -X lichy@lnxsrv09.seas.ucla.edu]
+
+Following steps are to enable key-based authentication rather than password based authentication, when ssh-ing from one SEAS server to another (daisy-chain connection).
+
+2) Generate public and private key pair on client
+	[ssh-keygen]
+		- save key to ~./.ssh/id_rsa
+		- set passphrase (enter twice to confirm)
+
+3) Copy public key to a different SEAS server (linux server 07)
+	[ssh-copy-id -i lichy@lnxsrv07.seas.ucla.edu]
+		- enter password to lichy@lnxsrv07.seas.ucla.edu
+
+At this point, the password entered upon creating the key pair will be required for any connection from a SEAS server to another SEAS server, as your private key is still protected.
+
+However, adding your private key to ssh-agent will solve this as OpenSSH will talk to your ssh-agent daemon to retrieve the password.
+
+4) Add private key from client (linux server 09) to ssh-agent, first evaluating authenticity of ssh-agent
+	[ eval `ssh-agent`], [ssh-add]
+		- enter password that is protecting private key
+
+Now connecting from one SEAS server (acting as client) to another SEAS server requires a password that is automatically provided by my ssh-agent daemon.

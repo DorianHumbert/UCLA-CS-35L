@@ -1,0 +1,63 @@
+Alex Chen
+005299047
+Assignment 2
+Homework
+
+------------
+
+Generating a key pair and detached signature with GNU Privacy Guard
+
+1) Creating key pair
+- [gpg2 --gen-key]
+	- give further specifications, including expiration date and size of key in bits
+- all commands found by going through gpg man page
+- no additional entropy needed
+
+1.5) If creating entropy while creating key pair is necessary
+- log into lichy@lnxsrv.seas.ucla.edu in a different shell
+- [find / -readable] will list all readable files starting in the root directory
+- [find / -readable > /dev/null] will copy all of those readable files into "/dev/null" ("/dev/null" will then redirect those files to nothingness)
+
+2) Exporting public key to hw-pubkey.asc in ASCII format
+- [gpg2 -armor --export --output hw-pubkey.asc]
+	- searched for "export" in gpg man page and found "--export," which also specified adding "--output" and a filename for writing the key to that file
+	- searched for "ASCII" in the man page and found the "-armor" option to export as ASCII
+
+3) Creating a detached signature for hw-pubkey.asc from private key
+- [gpg2 -sb hw-pubkey.asc]
+	- found command by searching for "detached" in gpg man page
+	- after inputting command, enter password to unlock private key and create the detached signature for hw-pubkey.asc
+
+4) Verification of hw-pubkey.asc using the signature
+- [gpg2 --verify hw-pubkey.sig hw-pubkey.asc]
+	- should output "Good signature"
+
+------------
+
+1) 
+All the bytes transmitted across the network are encrypted. Just viewing the bytes will give no useful information as to the actual information transmitted. 
+During the authentication session, my public key can be viewed, but that only allows encryption of data and not decryption of data. Thus, the network is still secure.
+During the actual session, once the session key has been securely shared, symmetric encryption is used, so still, no information can be seen by any 3rd party.
+
+If other teams had tapped my keyboard, then because my keystrokes are not encrypted, every character I type will be clear to the viewer, including all passwords I entered. 
+However, the network would still be somewhat secure because even with the password to my private key, anyone would need access to my machine in order to access my private key.
+My private key is never transmitted digitally.
+
+If I am booting off of my USB, then having access to the USB would mean having root access and being able to view all the files that hold private and public key information. 
+Thus, this implies that the network is not secure, unless the file holding my private key is password protected or encrypted in any way.
+With my private key, private messages and information sent to me can be decrypted.
+
+2) 
+The gpg2 --verify command does not verify the creator of any file. Anyone can create a signature for a file. 
+Thus, anyone could have intercepted hw-pubkey.asc, modified it, created a signature for it, and sent the new hw-pubkey.asc and hw-pubkey.sig files, along with his/her public key. 
+
+Just as long as the private key used to create the signature matches the public key used to verify a file with the signature, there is no proof as to who actually created a file. 
+To solve this issue, one could share the public key separately. 
+Therefore, if the files are tampered with, the public key separately shared will fail to decrypt the signature.
+This is because the signature was encrypted with a completely different public key that is paired with the 3rd party's private key.
+
+However, ideally, nothing transmitted digitally can be trusted. Therefore, alternatively, a third party can be deferred to. 
+The third party can verify public keys, allowing the receiver of a file to confirm that the public key they were sent was sent by who they expected it to be from.
+If the third party is trusted, then there is now authentication of the intended sender/creator of a file.
+
+
