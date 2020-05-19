@@ -1,0 +1,63 @@
+#! /bin/bash
+
+basicPoorNames() {    
+    # prints out invalid files (that do not exceed character limit)
+    find "${x}" -maxdepth 1 -mindepth 1 2>/dev/null |
+    grep -E '/[^/]{1,14}$' |
+    grep -Ev '/[a-zA-Z_]+[a-zA-Z_\.-]*$' |
+    xargs --delimiter="\n" -r ls -pd -1 --show-control-chars
+
+    # prints out all files exceeding the character limit
+    find "${x}" -maxdepth 1 -mindepth 1 2>/dev/null |
+    grep -E '/[^/]{15,}$' |
+    xargs --delimiter="\n" -r ls -pd -1 --show-control-chars
+
+    # prints out duplicates of valid files
+    find "${x}" -maxdepth 1 -mindepth 1 2>/dev/null |
+    grep -E '/[^/]{1,14}$' |
+    grep -E '/[a-zA-Z_]+[a-zA-Z_\.-]*$' |
+    xargs --delimiter="\n" --no-run-if-empty ls -pd -1 --show-control-chars |
+    sort -f |
+    uniq -iD
+}
+
+recur='false'
+
+# tests for recursion and shifts arguments
+if test "${1}" == '-r'; then
+    shift
+    recur='true'
+fi
+
+x="${1}"
+
+# test number of arguments
+if test "$#" -gt 1; then
+    echo 'Error: an invalid number of arguments passed.' >&2
+    exit 1
+elif test "$#" -eq 0; then
+    x='.'
+fi
+
+# checks if argument is a symbolic link, not a directory, or begins with a dash
+if test -L "${x}" -o ! -d "${x}"; then
+    echo 'Error: Argument is not a directory, or is a symbolic link.' >&2
+    exit 1
+elif test $(echo "${x}" | grep ^-) > /dev/null; then
+    echo 'Error: Argument cannot begin with a "-".' >&2
+    exit 1
+fi
+
+# add backslash to end of argument if not already present
+if test $(echo "${x}" | grep -Ev '/$') > /dev/null; then
+    x="${x}/"
+fi
+
+# determine if recursion option was provided
+if test "${recur}" == 'true'; then
+    find "${x}" -type d -exec ./poornames \{\} \;
+else
+    basicPoorNames
+fi
+
+exit 0

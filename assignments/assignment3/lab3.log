@@ -1,0 +1,156 @@
+Alex Chen
+005299047
+Assignment 3
+Laboratory
+
+------------
+
+1) Setup
+
+[export LC_ALL='C']
+
+Opened the "./profile" file and added this command
+Saved, exited, ssh-ed back to the SEAS server
+Tested that this command was executed properly by running [locale]
+All of the LC_* environment variables are set equal to 'C'
+
+
+2) Sorting and redirecting
+
+[sort /usr/share/dict/words > words]
+
+Ran this command in order to sort all of the words in the words file
+Redirected output into my own file in my current working directory named words.
+
+
+3) Wget
+
+[wget assignment3link]
+
+Ran the command with the url of assignment 3 as input
+Running [ls] will show that "assign3.html" is saved
+
+4) Running [tr] commands ([cat assign3.html | insertTrCommand])
+
+[... | tr -c 'a-zA-Z' '[\n*]']
+	- Replaces any characters that are not alphabetic with a newline
+  - Redirects output to standard output
+  - Only alphabet characters and newlines are left
+  - [\n*] will extend so that set 2 is the same length as set 1
+
+[... | tr -cs 'a-zA-Z' '[\n*]']
+	- Same as previous command but also combines all consecutive newlines into one
+  - "-s" will compress consecutive occurrences of characters
+
+[... | tr -cs 'a-zA-Z' '[\n*]' | sort]
+	- Same as previous command but also sorts the newlines alphabetically
+  - This is a result of piping the output into the sort command
+
+[... | tr -cs 'a-zA-Z' '[\n*]' | sort -u]
+	- Same as the previous command but deletes all duplicates of a single line
+  - The "-u" option for the sort command leaves only the unique lines
+
+[... | tr -cs 'a-zA-Z' '[\n*]' | sort -u | comm - words]
+	- Same as the previous command but pipes the output
+  - [comm - words] will compare the standard input and the words file
+  - The first column will contain words unique to the standard input
+  - The second column will contain words unique to the words file
+  - The third column will contain all words common to both sources
+
+[... | tr -cs 'a-zA-Z' '[\n*]' | sort -u | comm -23 - words]
+	- Same as previous command but suppresses the second and third columns
+  - Leaves only the words that are found in assign3.html
+  - Much more readable than the previous command
+
+
+5) Shell Script for Hawaiian dictionary
+
+[wget link]
+	- "link" is the url of the basic Hawaiian dictionary.
+	- convert website to text file
+
+[... | sed -E 's/\?|<u>|<\/u>//g']
+	- deleting all instances of '?', '<u>', and '</u>' from the text file
+	- will use stream editor to remove matched extended regular expressions
+	- '?' and '/' (in </u>) need to be escaped
+
+[... | tr '`-' "\' "]
+	- '`' will be replaced with '
+  - '-' will be replaced with a blank space
+
+[... | tr 'A-Z' 'a-z']
+	- replacing uppercase with lowercase
+
+[... | grep -Eo "[[:space:]]*<td[^>]*>W</td>[[:space:]]*"]
+	- W = [\'pkmnwlhaeiou[:space:]]*
+	- extracting Hawaiian words that are present in tables
+
+[... | sed -E 's/[[:space:]]*<td[^>]*>|<\/td>[[:space:]]*//g']
+	- removing the table HTML tags, leaving just the Hawaiian words
+
+[... | tr -s '[:space:]' '\n']
+	- replace spaces with unique newlines
+
+[... | sort -u]
+	- sort and leave only the unique words
+
+[chmod +x buildwords]
+	- make "buildwords" executable by all
+
+[wget website]
+	- download Hawaiian word dictionary into a text file
+
+[cat hwnwdshw.htm | ./buildwords | less > hwords]
+	- run executable, outputting all Hawaiian words to "hwords" text file
+
+
+6) Hawaiian spell-checker (HAWAIIANCHECKER)
+
+[cat assign3.html | tr 'A-Z' 'a-z' | tr -cs \''a-z' '[\n*]' |
+ sort -u | comm -23 - hwords]
+	- replace all uppercase ASCII letters with lowercase ASCII letters
+	- replace any non-ASCII letters or the apostrophe with a unique newline
+	- sort and leave only a single occurrence of duplicate words
+	- compare words with Hawaiian dictionary
+  - leaves only mispelled Hawaiian words
+
+
+7) Further analysis
+
+[... | wc -w]
+	- pipe output of HAWAIIANCHECKER into [wc -w]
+	- TOTAL MISPELLED HAWAIIAN WORDS: 574
+
+[cat hwords | ... comm -23 - hwords | wc -w]
+	- HAWAIIANCHECKER ran on hwords
+	- RESULT: 0; logical because [cat hwords] should output correct Hawaiian words
+
+[... > mispelledH]
+	- redirect output of HAWAIIANCHECKER on assign3.html into "mispelledH" file
+
+[cat words | tr 'A-Z' 'a-z' | sort -u > lowercasedWords]
+	- create a new English dictionary that converts uppercase to lowercase
+  - this is a more accurate spell checker
+
+[cat assign3.html | tr 'A-Z' 'a-z' | tr -cs 'a-z' '[\n*]' |
+ sort -u | comm -23 - words | wc -w]
+	- run modified version of ENGLISHCHECKER
+	- lowercases everything before comparing with the lowercased English dictionary
+	- TOTAL MISPELLED ENGLISH WORDS: 41
+
+[... > mispelledE]
+	- redirect output of ENGLISHCHECKER on assign3.html into "mispelledE" file
+
+[comm -23 mispelledE mispelledH]
+	- compares words that ENGLISHCHECKER and HAWAIIANCHECKER report as mispelled
+  - leaves words that only ENGLISHCHECKER reports as mispelled
+	- pipe result into [wc -w] to count total discrepancies
+	- TOTAL DISCREPANCIES: 7
+	- TWO EXAMPLES: "wiki" and "kahiki"
+
+[comm -23 mispelledH mispelledE]
+	- compares words that HAWAIIANCHECKER and ENGLISHCHECKER report as mispelled
+  - leaves words that only HAWAIIANCHECKER reports as mispelled
+	- pipe result into [wc -l]
+	- TOTAL DISCREPANCIES: 540
+	- TWO EXAMPLES: "zero" and "yourself"
