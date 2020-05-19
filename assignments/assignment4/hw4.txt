@@ -1,0 +1,86 @@
+Alex Chen
+005299047
+Assignment 4
+Homework
+
+------------
+
+Q1) 
+
+[time coreutilsTemp/bin/ls -aA /usr/bin]
+	- 0.021s (real), 0.009s (user), 0.011s (sys)
+
+[time coreutils-8.29/src/ls -aA /usr/bin]
+	- 0.021s (real), 0.008s (user), 0.011s (sys)
+
+The performance of patched ls is marginally improved, looking at the average
+test results above, after running several tests of both versions of ls. The
+time required to list the contents of /usr/bin is less for the patched 
+version of ls, albeit by an insignificant amount. This would make sense, 
+because when looking at the patch file, a conditional is removed for the 
+case that the 'A' option is provided. This saves some time and accumulates
+when there are many files in a directory, such as /usr/bin. However, in
+the patch, not only is a conditional removed, but an additional test is
+added to the tests/local.mk file. Thus, the differences in efficiency
+are balanced out.
+
+
+Q2) 
+
+Because in this patched version of Coreutils, the -A option will override 
+the -a option for the ls program, if my company uses code that is not 
+expecting this, the '.' and '..' directories may be missing where they are 
+expected. In most cases, this should not cause a significant issues, but 
+there is a possibility such that a developer is running [ls -aA] and using 
+the output for other purposes, other than to check the content of a 
+directory (such as with the buildwords script). If the developer wants the 
+'.' and '..' directories to be used as input into the next processes, then 
+this is an issue. There is no backwards compatability in this specific case.
+
+
+Q3)
+
+[emacs randline.py]
+
+Copy and paste randline.py file from CS 35L website to this python text file
+ on the SEAS server
+
+[./randline.py /dev/null]
+
+When this script is ran with /dev/null, there are no issues, until 
+generator.chooseline() is ran. Tracing this back to the randline class, it 
+can be seen that /dev/null is to be opened with the open() function, and 
+then the lines inside the file are stored in a variable. Then, random.choice 
+is called on that variable. There is an error here because there are no 
+lines in the /dev/null file, preventing random.choice from being able to 
+select any of them. This matches the error message that is outputted, 
+stating that "seq" is empty, so there is an Index Error, inside the 
+random.py library.
+
+
+Q4)
+
+[python3 ./randline.py /dev/null]
+
+When the script is ran with Python 3, there is a syntax error at the 
+try-except block that comes after the arguments and options have been 
+processed. Specifically, the syntax error is at the parentheses in "except 
+IOError as (errno, strerror):". This is a result of the syntax changes from 
+Python2 to Python3. A syntactically acceptable way of writing this except 
+statement in Python3 would be "except IOError as e:", after which the next 
+line would also need to be modified accordingly to use 'e'.
+
+
+Q5)
+
+[python ./shuf.py randomtext]
+
+After testing my shuf.py script with the possible positional and optional 
+arguments, I have observed that there are no errors. My script is backwards 
+compatible with Python 2. All the libraries I imported support both Python 2 
+and Python 3. There is no integer mathematics. String behavior is the same, 
+despite the different encodings. Thus, none of the major differences between 
+Python 2 and Python 3 are present in my shuf.py script.
+
+
+

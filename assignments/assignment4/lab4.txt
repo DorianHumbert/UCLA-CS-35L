@@ -1,0 +1,111 @@
+Alex Chen
+005299047
+Assignment 4
+Laboratory
+
+-----------
+
+Setup
+
+
+1) 
+
+- Created shell script as specified to test the issue that running [la -A]
+ yields. 
+- Copied the two lines from the CS 35L website into a text file named la.
+- issue is still present, using lnxsrv04 with ls version 8.2.4
+- the -A option does not override the -a option.
+
+
+Building a copy of Coreutils 8.29
+
+
+1) 
+
+- Download Coreutils 8.29 source code compressed tarball, the signature, and
+the GNU keyring onto the SEAS server with [wget link], replacing link with
+each of the urls.
+- [gpg --verify --keyring ./gnu-keyring.gpg coreutils-8.29.tar.xz.sig]
+- There is a warning with this command. The key is not certified with a 
+trusted signature, meaning that although the public key used to verify the 
+signature is valid, the public key itself is not certified to be the public
+key of the author of the source code, whether the reason is because the 
+source code is outdated, and thus the true author's public key has changed,
+or because gpg has not verified the owner of this public key.
+
+
+2)
+
+- [tar -xf tarball] where tarball is the name of the Coreutils 8.29 source 
+code tarball
+	- extracts files from the tarball (-x option), specifying that it is a 
+	file (-f option)
+- [cd coreutils-8.29], [cat INSTALL | less]
+	- enter the uncompressed file and read the installation section on 
+	Prefix
+	- run ./configure and make and make install
+	- to install this under a specified directory, add [--prefix=PREFIX],
+	where PREFIX is an absolute 
+	directory (this will add some modifications to the created makefile)
+- [./configure --prefix=directory], where directory is my intended temporary
+ directory
+	- confirms dependencies and creates a makefile
+- [make]
+	- compiles source code into runnable program, based on makefile
+- [make install]
+	- copies compiled program into system directories (in this case, the one
+	specified during configuration) so that it can be run from any 
+	directory 
+- no bugs ran into
+
+
+3) 
+
+- [cd ..]
+- [coreutilsTemp/bin/ls -aA]
+	- run ls command on the current directory from the previously 
+	installed version of coreutils ls
+	- the bug is reproduced, as the '.' and '..' directories are listed, 
+	meaning the -A option did not override the -a option
+- [coreutilsTemp/bin/ls -A] itself hides the '.' and '..' directories
+as expected
+
+
+4) 
+
+- [emacs patch.diff], then copy and paste diff results from Eggert's patch
+- [cd path] to change back into the coreutils-8.29 directory and apply the
+ patch
+- [patch -p1 < patch.diff]
+	- add -p1 option to strip to the first forward slash in the path to 
+	original and modified file paths that are specified in patch.diff
+- no errors encountered
+
+
+5) 
+
+- [make] to re-compile the patched files
+	- warnings: "automake-1.15 is missing from your system"
+	- [autoreconf -fi] to resolve
+- There were many files copied in order to re-apply the changes to the 
+files. This makes sense because the patch changes files and all these files
+need to be applied to the appropriate locations. Make will compile the
+changes into an executable program, but the changes need to be applied 
+everywhere.
+
+
+6)
+
+- [cd ..]
+- [coreutils-8.29/src/ls -aA]
+- ran the patched version on the current directory and also on /usr/bin
+- '.' and '..' directories are now hidden and the patch was successful
+- [coreutilsTemp/bin/ls -aA]
+- reran the old unpatched version as well to confirm the prior error
+
+
+
+
+
+
+
