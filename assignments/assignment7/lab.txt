@@ -1,0 +1,194 @@
+Alex Chen
+005299047
+Assignment 7
+Laboratory
+
+------------
+
+1. Compile, build, and run simpgmp.c
+
+[wget link] where link is the link containing the simpgmp.c file
+
+[gcc -lgmp simpgmp.c -o simpgmp] to compile and build simpgmp
+
+2. Compute 2**(2**24)
+
+[./simpgmp] to run program
+	- standard output shows usage -> ./simpgmp exponent
+
+[./simpgmp 10] to run program
+	- returns 1024
+	- further tests: [./simpgmp 3], [./simpgmp 5]
+	- all return 2 to the power of the provided argument
+	- looking at the actual source code confirms this functionality
+
+[./simpgmp 24] to determine 2**24
+[./simpgmp x | less] where x is 2**24
+	- first 4 digits are 1818
+	- rerun without the less
+		- last 4 digits are 7536
+[./simpgmp x | wc -m] to determine the character count of output
+	- prints out 5,050,446 as expected
+
+[man ldd] to get usage
+	- ldd [OPTION]... FILE...
+	- "ldd prints the shared libraries required by each program"
+
+3. Determine which dynamic libraries are used by simpgmp
+
+[ldd simpgmp]
+	- linux-vdso.so.1 =>  (0x00007ffeaa144000)
+	- libgmp.so.10 => /lib64/libgmp.so.10 (0x00007f0fd7c81000)
+	- libc.so.6 => /lib64/libc.so.6 (0x00007f0fd78b3000)
+	- /lib64/ld-linux-x86-64.so.2 (0x00007f0fd7ef9000)
+	- these 4 are the dynamic libraries used
+
+4. Determine which system calls are made
+
+[strace -c ./simpgmp 120402394] (random large number)
+	- The syscalls are shown below.
+	- write, munnmap, brk, mmap, read relate to dynamic memory allocation
+	or I/O
+	- Research the rest of the syscalls
+	- mprotect
+		- specifies protection for memory pages covered by the interval
+		passed in
+	- open
+		- establishes a connection between a file and file descriptor
+	- fstat
+		- returns information about a file
+	- access
+		- checks whether or not the calling process can access a file
+	- close
+		- close the specified file descriptor
+	- arch_prctl
+		- select a subfunction and pass an address to it
+	- execve
+		- executes the executable program or script specified
+	- From these results, it seems that mmap, brk, open, close, fstat, access,
+	and execve all relate to dynamic linking. Because the executable at compile time does not contain all the library functions it needs due to dynamic linking, but instead contains references to the library functions, when the executable is run, the references need to be dereferenced and loaded. Thus, it makes sense that these syscalls are related to dynamic linking. In opening and closing the shared libraries, open and close are used. In getting relevant information about the shared libraries, including permissions, fstat and access are used. In loading the relevant portions of the shared libraries into memory, mmap() and possibly brk() are used. execve runs the executable to begin this whole process.
+
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 90.59    0.043214       21607         2           write
+  5.15    0.002457         154        16           munmap
+  3.67    0.001753          18        98           brk
+  0.27    0.000130           5        26           mmap
+  0.10    0.000050           8         6           mprotect
+  0.07    0.000034          11         3           open
+  0.04    0.000018           5         4           fstat
+  0.04    0.000017          17         1         1 access
+  0.03    0.000013           7         2           read
+  0.03    0.000012           4         3           close
+  0.01    0.000003           3         1           arch_prctl
+  0.00    0.000000           0         1           execve
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.047701                   163         1 total
+
+5, 6. Invoke ldd on certain executables
+
+[ls /usr/bin | awk '(NR-005299047)%251 == 0']
+
+[ldd name] where name is the name of the outputted commands,
+prepended with /usr/bin
+	- bzgrep
+		- not a dynamic executable
+	- dbus-uuidgen
+	- gemtopnm
+	- hostnamectl
+	- kminspector
+		- not a dynamic executable
+	- mk4ht
+		- not a dynamic executable
+	- otf2-marker
+	- pgmoil
+	- ppmquant
+		- not a dynamic executable
+	- runant.py
+		- not a dynamic executable
+	- tcbmgr
+	- xkill
+
+All errors with the ldd command are due to the specified executable
+not being dynamic executables. This means that they were statically linked
+and have no references to shared libraries.
+
+7. Sort all dynamic libraries used by the previous commands
+
+[locale] to ensure using Standard C locale
+
+[./ldd_run | grep so | sort -u] where ldd_run is the shell script provided
+in the Lab 7 Hints
+
+Output:
+
+- Note: The first ld-linux-x86... libraries point to no directories
+because the absolute path is hardcoded into the program. The last linux-vdso.so... libraries point to no absolute paths because they 
+are embedded in the kernel and are automatically loaded whenever a 
+new process is executed. Sources: ld.so(8) and vdso(7) manpages.
+
+	/lib64/ld-linux-x86-64.so.2 (0x00007f279854d000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f6f71eb6000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fa783f96000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fb154806000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fc8850de000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fd5d69ee000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fe0d0c32000)
+	libX11.so.6 => /lib64/libX11.so.6 (0x00007f279800a000)
+	libXau.so.6 => /lib64/libXau.so.6 (0x00007f279760c000)
+	libXmuu.so.1 => /lib64/libXmuu.so.1 (0x00007f2798348000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007fb151f18000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007fd5d598e000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007fb151678000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007fe0d079f000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f2797c3c000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f6f71010000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fa783686000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fb153b98000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fc8847ce000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fd5d5b93000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fe0cfa95000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007fb153993000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007fd5d6393000)
+	libdbus-1.so.3 => /lib64/libdbus-1.so.3 (0x00007fb1543b3000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f2797810000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007fb152333000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007fb152537000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007fb151a9e000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f6f713de000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007fb15211d000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007fd5d617d000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007fb152ba6000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007fb1529a1000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007fb152e27000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007fb15303c000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f6f715f4000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007fa783a54000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007fb153691000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007fc884b9c000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007fe0cfe63000)
+	libnetpbm.so.11 => /lib64/libnetpbm.so.11 (0x00007fa783d56000)
+	libnetpbm.so.11 => /lib64/libnetpbm.so.11 (0x00007fc884e9e000)
+	libotf2.so.5 => /lib64/libotf2.so.5 (0x00007f6f71bfd000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007fb151cb6000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007fb154197000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007fd5d5f61000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007fe0d0165000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007fb152788000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007fb153489000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007fd5d6598000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007fe0d0381000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007fb153262000)
+	libstdc++.so.6 => /lib64/libstdc++.so.6 (0x00007f6f718f6000)
+	libsystemd.so.0 => /lib64/libsystemd.so.0 (0x00007fb153f66000)
+	libtokyocabinet.so.9 => /lib64/libtokyocabinet.so.9 (0x00007fe0d09af000)
+	libxcb.so.1 => /lib64/libxcb.so.1 (0x00007f2797a14000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007fb151888000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007fe0d0589000)
+	linux-vdso.so.1 =>  (0x00007ffca4b6b000)
+	linux-vdso.so.1 =>  (0x00007ffd2c2d2000)
+	linux-vdso.so.1 =>  (0x00007ffdaedf6000)
+	linux-vdso.so.1 =>  (0x00007ffe8cdb2000)
+	linux-vdso.so.1 =>  (0x00007ffe94de1000)
+	linux-vdso.so.1 =>  (0x00007fff169c4000)
+	linux-vdso.so.1 =>  (0x00007fffdcf94000)
