@@ -1,0 +1,194 @@
+Alex Chen
+005299047
+Assignment 5
+Laboratory
+
+------------
+
+1) Build old version of coreutils (same steps as in homework 4)
+
+[wget link] where link is the link of the old version of coreutils
+
+[tar -xf tarball] where tarball is the name of the previously downloaded 
+source code tarball
+
+[cd coreutils], [./configure --prefix=directory], where coreutils is the 
+uncompressed file, and directory is my intended temporary directory
+	- a large amount of dependencies being checked for and printed to stdout
+	- a makefile is created
+
+[make]
+	- compiles source code into runnable program, based on makefile
+	- There is an error in this step, pointing to the futimens function. 
+	Stderr shows two declarations of the futimens function. One shows the 
+	return value of an int, while the other shows a return value of an extern 
+	int. This is not an issue because the extern keyword is simply an 
+	expansion done by the compiler to show 	that the definition of the function 
+	is located else where and that the function can be called by any file 
+	in the program. 
+	- The other difference in the two functions printed out is the parameters. 
+	The error states the error, "conflicting types for 'futimens'." Specifically, it 
+	states that in utimecmp.c, the included header file, utimens.h, defines the 
+	futimens function as 'int futimens (int, char const *, struct timespec const [2]);'. 
+	Then, these files also include stat.h, which has previously defined futimens with 
+	a different set of parameters (extern int futimens (int __fd, const struct timespec 	__times[2]) __THROW;). This is the reason for the error - the futimens function is 
+	being redefined with different parameters (and with a different number of 		parameters).
+
+2) Applying the patch
+
+[wget link] where link is the link to the diff file provided on the CS 35L website
+
+[patch -p0 < coreutils.diff]
+	- -p0 option applied because no changes to the directories in the patch diff 
+	file need to be made
+	- files patched 
+
+[make]
+	- compile all the changes into an executable program
+
+[make install]
+	- copies newly compiled program into system directories (in this case, the 
+	one specified during configuration) so that it can be run from those 
+	directories
+
+The patch fixes the issue because in the patch, futimens itself, in every call or 
+definition in the utimens.c or utimens.h file, is replaced with coreutils_futimens (the
+parameters remain same). Thus, there is no ambiguity or conflict with the previously 
+defined futimens function in the included stat.h header file. Additionally, the patch changed occurences of tee to coreutils_tee.
+
+3) Reproduce ls -t bug
+
+[cd ..]
+
+[tmp=$(mktemp -d)], [cd $tmp], [touch -d '1918-11-11 11:00 GMT' wwi-armistice-cs35L], 
+[touch now], [sleep 1], [touch now1]
+	- run these commands to create the files with appropriate timestamps
+
+[TZ=UTC0 ls -lt --full-time wwi-armistice-cs35L now now1]
+	- updated SEAS server version of ls, outputs these three files chronologically correctly
+
+[TZ=UTC0 /u/eng/ugrad/lichy/Desktop/cs35l/assignment5/coreutils-with-bug/src/ls -lt 
+--full-time wwi-armistice-cs35L now now1]
+	- bug successfully reproduced: the oldest file,"wwwi-armistice-cs35L", is incorrectly listed first
+	- note: time zone is not PST (but should not matter)
+
+-rw-r--r-- 1 lichy engugrad 0 1918-11-11 11:00:00.000000000 +0000 wwi-armistice-cs35L
+-rw-r--r-- 1 lichy engugrad 0 2020-05-05 05:50:06.771458051 +0000 now1
+-rw-r--r-- 1 lichy engugrad 0 2020-05-05 05:50:02.938340494 +0000 now
+
+4) Run through ls executable with gdb debugger
+
+[cd dir], where dir is the  directory src directory within my coreutils-with-bug directory
+
+[emacs ls.c]
+	- look through the code to see how running [ls -t] is handled by the code
+	- first goes through the main function
+	- switch statement is used to determine if -t option was provided
+	- if so, sort_type is set to sort_time
+	- looking more through the code, there is a function call to sort_files()
+	- use [C-s] to look for sort_files()
+	- going through sort_files(), there is a switch statement for sort_type which 
+	will stop at sort_time due to running with the -t option
+	- a "func" variable is modified, eventually being the input to a qsort function 
+	call
+	- thus, what function "func" is set to is likely the issue here
+
+[gdb ls]
+	- run ls with the debugger
+	- [break main] to stop at the main function
+	- [set args -lt --full-time /tmp/tmp.A8XeuOd9b1] to run ls -t on the same test directory
+	- [run]
+	- [next] ran many times until reaching the sort_files() function
+	- [break sort_files] now that sort_files() has been verified in gdb
+	- [continue] to reach sort_files()
+	- [si] to step through sort_files(), comparing output with ls.c code
+		- observed that case sort_time, is jumped to
+	- note: cannot break directly at sort_files() as what the if statement in 		sort_files() will evaluate is still unclear
+	- [print time_type] to see that time_mtime will be stopped at
+	- [print sort_reverse] to see which part of the if statement within case 
+	time_mtime will be executed
+		- sort_reverse is false, so compare_mtime will be called
+	- [break compare_mtime]
+	- [continue]
+	- [si] once, and see that timespec_cmp is called
+	- [break timespec_cmp]
+	- [continue]
+	- [list timespec_cmp] to see internals of the function, and the error is present
+	- "int diff = a.tv_sec - b.tv_sec;" is run inside the function, and the problem is
+	that if a file's timestamp is too old, when it gets subtracted, a large negative
+	integer is obtained, which then overflows to a large positive integer. Thus, the 
+	old file is interpreted to be newer. This is confirmed by stepping in until diff 
+	is calculated, and then [print diff]. A very large integer is obtained.
+
+5) Creating the patch
+
+Note that [list timespec_cmp] shows that the timespec_cmp function is located in 
+the timespec.h file (and inlined)
+
+[quit], [y] to exit gdb and kill the debugging process
+
+[cd ..]
+
+[cp lib/timespec.h timespec.h-patch], [emacs timespec.h-patch] to copy header 
+file and modify function
+
+Here is my modification.
+
+static inline int
+timespec_cmp (struct timespec a, struct timespec b)
+{
+  if (a.tv_sec > b.tv_sec)
+    return 1;
+  if (a.tv_sec < b.tv_sec)
+    return -1;
+  return 0;
+}
+
+Because the actual difference does not need to be returned, but just a positive integer, negative integer, or 0 needs to be returned, the difference does not need to be 
+calculated. a.tv_sec and b.tv_sec only need to be compared, and an appropriate 
+integer is returned for each case.
+
+[C-x C-c y] to save and exit
+
+[diff -u lib/timespec.h timespec-patch > lab5.diff] to create the patch file based 
+on the new timespec.h-patch file
+	- -u option converts the output to an appropriate format including specifying 
+	file paths
+
+[patch -p0 < lab5.diff] to apply the patch
+	- p0 means no modifications will be applied to the file paths specified in 
+	the diff file (as intended)
+
+[make], [make install]
+	- re-compile the changed program into a new executable and apply the changes 
+	to the directories specified during configuration
+
+[cd /tmp/tmp.A8XeuOd9b1], [TZ=UTC0 ~/Desktop/cs35l/assignment5/coreutils-with-bug-temp/ls 
+-lt --full-time wwi-armistice-cs35L now now1]
+	- re-enter directory and run original command
+	- results are now listed in the correct order, with the wwi-armistice-cs35L 
+	file listed last
+
+[cd], [rm -rf $tmp]
+
+[touch -d '1918-11-11 11:00 GMT' wwi-armistice-cs35L], [touch now], [sleep 1], 
+[touch now1], [TZ=UTC0 ls -lt --full-time wwi-armistice-cs35L now now1]
+	- re-test this case with SEASnet version of ls and touch
+	- SEASnet results are inaccurate
+	- the timestamp of the wwi-armistice-cs35L file has been changed to be a time 
+	far in the future rather than far in the past
+	- chronological order of these timestamps is correct
+	- Unix timestamps are equivalent to the time passed since January 1st, 
+	1970 - aka, the Unix epoch
+	- Subtraction likely occurs somewhere in order to determine this difference 
+	in time, meaning the difference in time for a timestamp before 1970 and for 1970 is 	negative
+	- Then, the negative value is interpreted as an unsigned integer, leading to 
+	the result of a time far in the future.
+
+-rw-r--r-- 1 lichy engugrad 0 2054-12-17 17:28:16.000000000 +0000 wwi-armistice-cs35L
+-rw-r--r-- 1 lichy engugrad 0 2020-05-05 06:01:07.114385000 +0000 now1
+-rw-r--r-- 1 lichy engugrad 0 2020-05-05 06:01:03.556356000 +0000 now
+
+
+
+

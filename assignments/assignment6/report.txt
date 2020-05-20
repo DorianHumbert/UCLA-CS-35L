@@ -1,0 +1,256 @@
+Alex Chen
+005299047
+Assignment 6
+Laboratory/Homework
+
+------------
+
+Laboratory
+
+1) Writing a C program to transliterate bytes using getchar() and putchar()
+
+- tr2b.c
+- Wrote a main function that takes in arguments, as specified with 'int argc' 
+and 'char** argv'
+- Wrote a transliteration function to do the bulk of the processing, taking
+in argv[1] and argv[2] as the "from" and "to" sets, respectively
+- Specify that argc must be 3 - meaning the program name and two character sets
+are provided
+- Wrote helper functions to check for input and output errors
+- Wrote code to iterate through "from" string to look for duplicates and to 
+compare lengths of "from" and "to" strings
+- Wrote code to go through inputted characters retrieved with getchar()
+and transliterate them if matching any character in "from"
+- Checked the exit statuses and error printing functionality.
+- Ensured to use size_t for any loop iterators.
+- Compile with gcc and test
+
+2) Writing a C program to transliterate bytes using read() and write()
+
+- Copy tr2b.c into another text file, tr2u.c [cp tr2b.c tr2u.c]
+- Read read() and write() documentation
+  - Return values can be -1 and 0+, so error processing needs to be treated
+  differently
+  - Return values are of ssize_t
+  - Thus, I modified by error checking functions to deal with these
+  - The actual read character is stored in a parameter
+- Memory needs to be passed in to write to for read(), and that same memory can
+be used for write()
+- Number of bytes to read/write, and file descriptor need to be passed, so I modified the function calls to replace getchar() and putchar() with these
+- Compile with gcc and test
+
+3) Comparing system calls with strace
+
+- Write short python script to generate a string of over 5 million bytes
+- Use the random library to generate an int which can be converted into a char
+- Place this logic into a loop that iterates over 5 million times
+- Use built in file opening and writing functions to write this string to file
+- [cat large_text_file | wc -c] to confirm the byte count is over 5 million
+
+-[strace -c ./tr2b 'belo what' 'is yoursn' < large_file.txt > 
+  large_file_output.txt]
+- -c option will give certain numbers about the performance of the program,
+including time taken by each syscall and the total number of syscalls
+- Test performance of tr2b program with strace, which returns the time taken as
+well as the number of system calls made
+- 1860 system calls were made
+
+-[strace -c ./tr2b 'belo what' 'is yoursn' < large_file.txt]
+- Same command, but file is copied to terminal instead
+- 21903 system calls were made
+
+-[strace -c ./tr2u 'belo what' 'is yoursn' < large_file.txt > 
+  large_file_output2.txt]
+- Repeat with tr2u program
+- 14999818 system calls were made
+- This is a drastic difference due to tr2u making a system call for each
+read and write for each of the 5 million bytes, while tr2b buffers these 
+read and write calls to ultimately make many, many less expensive system calls
+
+-[strace -c ./tr2u 'belo what' 'is yoursn' < large_file.txt]
+- Same command, but file is copied over to the terminal instead
+- 14999818 system calls were made.
+
+As expected, tr2u makes more system calls than tr2b. However, it is noticed
+that for tr2b, more system calls are made when a file is
+copied over to the terminal, rather than to another file, but this is not true
+for tr2u. This makes sense because writing to the terminal likely requires more 
+system calls than writing to a file, because there are less risks involved in 
+writing to a file. Thus, the additional system calls do not need to be made.
+Because tr2u is already making a system call for each read and write, there
+shouldn't be any difference for tr2u.
+
+4) Comparing the two programs with time
+
+- [time ./tr2b 'belo what' 'is yoursn' < large_file.txt > 
+large_file_output.txt] to measure time taken to run tr2b
+
+Output: It took 0.844 seconds (real time) to run the tr2b program
+
+real	0m0.844s
+user	0m0.682s
+sys		0m0.019s
+
+- [time ./tr2u 'belo what' 'is yoursn' < large_file.txt > 
+large_file_output2.txt] to measure time taken to run tr2u
+
+Output: It took 18.628 seconds to run the tr2u program
+
+real	0m18.628s
+user	0m4.986s
+sys		0m13.567s
+
+- Running the previous commands again, except copying files to terminal
+
+- [time ./tr2b 'belo what' 'is yoursn' < large_file.txt]
+
+Output: It took 1.762 seconds (real time)
+
+real	0m1.762s
+user	0m0.967s
+sys		0m0.259s
+
+- [time ./tr2u 'belo what' 'is yoursn' < large_file.txt]
+
+Output: It took 35.264 seconds (real time)
+
+real	0m35.264s
+user	0m9.933s
+sys		0m25.271s
+
+Overall, again, there is a drastic difference in performance between the two
+programs. This time, the differences are shown in the times required by
+each program to transliterate the same data. From these results, tr2b is
+observed to be around 20 times faster than fr2u. Furthermore, the results
+show that it is faster to print the results to stdout rather than to
+a file, which makes sense because outputting to a file may be another level
+of redirection.
+
+
+Homework
+
+1) Performance differences between sfrob and sfrobu
+
+- Created a python script to generate several random files, each
+of certain number of bytes
+- ran [time ./sfrob < file > /dev/null] and 
+[time ./sfrobu < file > /dev/null] on files of
+varying sizes
+- redirected to /dev/null to avoid a clutter on my terminal
+- also tested sfrobu with the [-f] option
+
+Real time results:
+
+0 bytes:
+
+	sfrob: 0m0.003s
+
+	sfrobu: 0m0.003s
+
+	sfrob -f: 0m0.003s
+
+	sfrobu -f: 0m0.003s
+
+100 bytes:
+
+	sfrob: 0m0.003s
+
+	sfrobu: 0m0.003s
+
+	sfrob -f: 0m0.003s
+
+	sfrobu -f: 0m0.003s
+
+10,000 bytes:
+
+	sfrob: 0m0.007s
+
+	sfrobu: 0m0.023s
+
+	sfrob -f: 0m0.009s
+
+	sfrobu -f: 0m0.030s
+
+1,000,000 bytes:
+
+	sfrob: 0m0.462s
+
+	sfrobu: 0m1.393s
+
+	sfrob -f: 0m0.578s
+
+	sfrobu -f: 0m1.902s
+
+10,000,000 bytes:
+
+	sfrob: 0m3.412s
+
+	sfrobu: 0m11.613s
+
+	sfrob -f: 0m4.233s
+
+	sfrobu -f: 0m13.023s
+
+Once the file size reaches around 10,000 bytes, sfrobu and sfrob 
+both appear to reach linear relationships, with respect to time. If
+the file size increases by 10 times, for example from one to ten
+million bytes, the time taken also increased by around 10 times. In
+the initial stages, however, with small input sizes, there is negligible 
+difference.
+
+However, as expected, sfrobu performs much less efficiently than sfrob. 
+The most apparent reason is that my sfrobu implementation did not buffer
+the write() system calls, leading to a large difference in performance
+times. The other reason is possibly that my implementation of buffered
+input reads in sfrobu is not as effective as the implementation used
+by getchar(). However, the strace -c results show that less read calls
+are made for sfrobu than sfrob for any given file - thus, the first
+reason is the reason for the large difference.
+
+If system calls instead were implemented, these would be the calls made:
+
+void *mmap(void *addr, size_t length, int prot, int flags, 
+			int fd, off_t offset);
+
+mmap() would perform a function similar to realloc. It would allocate
+length number of bytes, starting at addr, returning the pointer to
+the mapped are upon success. Upon failure, it would return (void*)-1.
+These are the two key arguments.
+
+int brk(void *addr);
+
+brk() would set the break value to addr, which defines the size of the
+allocated memory, and there is undefined behavior for previously allocated 
+memory at that address.
+
+void *sbrk(intptr_t incr);
+
+sbrk() would add incr bytes to the break value, and change the allocated space
+accordingly. sbrk() can also take a negative incr value and decrease
+the allocated memory.
+
+int munmap(void *addr, size_t length);
+
+This is the equivalent of free(). The specified address range from addr
+to addr + length will have all memory mappings freed. Further references 
+to any of those previously specified ranges will return invalid references.
+
+void *mremap(void *old_address, size_t old_size,
+                    size_t new_size, int flags, ... /* void *new_address */);
+
+mremap() can also be used to remap/reallocate memory. old_size size of memory
+at old_address will be expanded or shrunk to a size of new_size.
+
+After running strace with sfrobu, the results show that brk(), mmap(),
+munmap(), and mremap() are all used to allocate or reallocate memory. sbrk()
+was never used. The number of brk() and mremap() starkly increases with
+large input sizes, as expected, as memory needs to be allocated and
+reallocated more frequently.
+
+The man pages for mallocshow that mmap() is used over brk() to allocate memory
+when the requested block of memory is over a threshold number of bytes.
+This matches the results, as mmap() calls are less frequent than brk() calls
+across all input sizes.
+
+
+
