@@ -66,8 +66,16 @@ Laboratory
 	- execve
 		- executes the executable program or script specified
 	- From these results, it seems that mmap, brk, open, close, fstat, access,
-	and execve all relate to dynamic linking. Because the executable at compile time does not contain all the library functions it needs due to dynamic linking, but instead contains references to the library functions, when the executable is run, the references need to be dereferenced and loaded. Thus, it makes sense that these syscalls are related to dynamic linking. In opening and closing the shared libraries, open and close are used. In getting relevant information about the shared libraries, including permissions, fstat and access are used. In loading the relevant portions of the shared libraries into memory, mmap() and possibly brk() are used. execve runs the executable to begin this whole process and also allocates virtual pages
-	in memory.
+	and execve all relate to dynamic linking. Because the executable at compile 
+	time does not contain all the library functions it needs due to dynamic 
+	linking, but instead contains references to the library functions, when the 
+	executable is run, the references need to be dereferenced and loaded. Thus, 
+	it makes sense that these syscalls are related to dynamic linking. In 
+	opening and closing the shared libraries, open and close are used. In getting 
+	relevant information about the shared libraries, including permissions, fstat 
+	and access are used. In loading the relevant portions of the shared libraries 
+	into memory, mmap() and possibly brk() are used. execve runs the executable 
+	to begin this whole process and also allocates virtual pages in memory.
 
 % time     seconds  usecs/call     calls    errors syscall
 ------ ----------- ----------- --------- --------- ----------------
@@ -90,7 +98,7 @@ Laboratory
 
 [ls /usr/bin | awk '(NR-005299047)%251 == 0']
 
-[ldd name] where name is the name of the outputted commands,
+[ldd name] where name is the name of the outputted programs,
 prepended with /usr/bin
 	- bzgrep
 		- not a dynamic executable
