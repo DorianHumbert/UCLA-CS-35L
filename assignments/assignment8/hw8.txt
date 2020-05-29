@@ -1,0 +1,263 @@
+Alex Chen
+005299047
+Assignment 8
+Homework
+
+-------------
+
+1) Make hw8.txt file (current file)
+
+2) Check out version 3.0 of Diffutils
+
+[git clone https://git.savannah.gnu.org/git/diffutils.git diffutils-hw], to 
+create a new repository with diffutils. The previous repository used in 
+the laboratory portion could have been used, but checking out version 3.0 
+and creating a branch from that would have lost all the changes I made (except 
+for the quote-3.0-patch.txt file).
+
+[cd diffutils-hw]
+[git checkout v3.0 -b quote] to checkout version 3.0 while creating a branch
+at that commit named "quote"
+
+3) Install change into branch
+
+[patch -p1 < ../quote-3.0-patch.txt] to install the patch previously created
+
+Output:
+
+patching file src/cmp.c
+patching file src/diff.c
+patching file src/diff3.c
+patching file src/dir.c
+patching file src/sdiff.c
+patching file src/util.c
+
+4) Learn how to use Emacs function add-change-log-entry-other-window (C-x 4 a)
+
+This command will add a new entry to the change log file of the repository 
+under version control, for the current day. After that, each file will have its
+own item created. A change log itself is a record or log of all notable
+changes to a project.
+
+5) Compose a ChangeLog entry for the patch
+
+The change log from the original patch is stored in ../git-log.txt. The Change-
+Log format to adapt from is a file in the highest level of diffutils-hw, called
+ChangeLog-2008.
+
+For each patched file (as shown in part three) as 'file':
+	[emacs file], [C-x 4 a], then transfer over the relevant change log 
+	messages for the current file from the appropriate commit inside of 
+	../git-log.txt. Ignore the change log messages relating to commentary, 
+	as comments were not changed. 
+
+Once this is completed, there is a ChangeLog belonging to the src directory
+containing all changes made to each file in the src directory, with each file
+having its own entry.
+
+Note: for why the src directory has its own ChangeLog, as per GNU, Emacs
+"searches up the directory tree" from the file being edited. It stops
+if upon reaching a directory that is the "root of a version-control" 
+repository.
+
+6) Commit changes with the ChangeLog entry as the commit message
+
+[git add .] to add all changed files to the index
+
+[git commit -F src/ChangeLog] to commit with the ChangeLog entry as the
+commit message
+
+Output:
+
+[quote 282a723] 2020-05-27  Alex Lichy Chen  <lichy@lnxsrv05.seas.ucla.edu>
+ Committer: Alex Lichy Chen <lichy@lnxsrv05.seas.ucla.edu>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly:
+
+    git config --global user.name "Your Name"
+    git config --global user.email you@example.com
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 6 files changed, 43 insertions(+), 43 deletions(-)
+ create mode 100644 src/ChangeLog
+
+7) Create a formatted patch from the commit
+
+[git format-patch -1 --stdout > ../formatted-patch.txt] to create the
+formatted patch. 
+
+git-format-patch will create a patch that has the format of a UNIX mailbox 
+message.
+
+8) Verify that the patch works
+
+[git checkout v3.0 -b patchery] to create a new branch at v3.0 named
+patchery
+
+[git am < ../formatted-patch.txt] to apply the patch I just created
+Note: git am decomposes and applies patches formatted as mailbox messages, 
+which the git format-patch command creates.
+
+[ldd --version] to confirm that GNU C Library is earlier than version 2.16
+
+[./bootstrap], [./configure], [make], then [make check] to build the new
+system
+
+Note: some targets fail when running make check, such as check-am and
+check-recursive, but the patch was still successful based on tests.
+
+[./src/diff . -] and [./src/diff --help] to test that the patch worked, which
+it does, as the grave accents are replaced with single ticks.
+
+Output of [./src/diff . -] is:
+
+"diff: cannot compare '-' to a directory"
+
+Output of [./src/diff --help] is:
+
+Usage: ./src/diff [OPTION]... FILES
+Compare files line by line.
+
+  -i  --ignore-case  Ignore case differences in file contents.
+  --ignore-file-name-case  Ignore case when comparing file names.
+  --no-ignore-file-name-case  Consider case when comparing file names.
+  -E  --ignore-tab-expansion  Ignore changes due to tab expansion.
+  -b  --ignore-space-change  Ignore changes in the amount of white space.
+  -w  --ignore-all-space  Ignore all white space.
+  -B  --ignore-blank-lines  Ignore changes whose lines are all blank.
+  -I RE  --ignore-matching-lines=RE  Ignore changes whose lines all match RE.
+  --strip-trailing-cr  Strip trailing carriage return on input.
+  -a  --text  Treat all files as text.
+
+  -c  -C NUM  --context[=NUM]  Output NUM (default 3) lines of copied context.
+  -u  -U NUM  --unified[=NUM]  Output NUM (default 3) lines of unified context.
+    --label LABEL  Use LABEL instead of file name.
+    -p  --show-c-function  Show which C function each change is in.
+    -F RE  --show-function-line=RE  Show the most recent line matching RE.
+  -q  --brief  Output only whether files differ.
+  -e  --ed  Output an ed script.
+  --normal  Output a normal diff.
+  -n  --rcs  Output an RCS format diff.
+  -y  --side-by-side  Output in two columns.
+    -W NUM  --width=NUM  Output at most NUM (default 130) print columns.
+    --left-column  Output only the left column of common lines.
+    --suppress-common-lines  Do not output common lines.
+  -D NAME  --ifdef=NAME  Output merged file to show '#ifdef NAME' diffs.
+  --GTYPE-group-format=GFMT  Similar, but format GTYPE input groups with GFMT.
+  --line-format=LFMT  Similar, but format all input lines with LFMT.
+  --LTYPE-line-format=LFMT  Similar, but format LTYPE input lines with LFMT.
+    LTYPE is 'old', 'new', or 'unchanged'.  GTYPE is LTYPE or 'changed'.
+    GFMT may contain:
+      %<  lines from FILE1
+      %>  lines from FILE2
+      %=  lines common to FILE1 and FILE2
+      %[-][WIDTH][.[PREC]]{doxX}LETTER  printf-style spec for LETTER
+        LETTERs are as follows for new group, lower case for old group:
+          F  first line number
+          L  last line number
+          N  number of lines = L-F+1
+          E  F-1
+          M  L+1
+    LFMT may contain:
+      %L  contents of line
+      %l  contents of line, excluding any trailing newline
+      %[-][WIDTH][.[PREC]]{doxX}n  printf-style spec for input line number
+    Either GFMT or LFMT may contain:
+      %%  %
+      %c'C'  the single character C
+      %c'\OOO'  the character with octal code OOO
+
+  -l  --paginate  Pass the output through 'pr' to paginate it.
+  -t  --expand-tabs  Expand tabs to spaces in output.
+  -T  --initial-tab  Make tabs line up by prepending a tab.
+  --tabsize=NUM  Tab stops are every NUM (default 8) print columns.
+  --suppress-blank-empty  Suppress space or tab before empty output lines.
+
+  -r  --recursive  Recursively compare any subdirectories found.
+  -N  --new-file  Treat absent files as empty.
+  --unidirectional-new-file  Treat absent first files as empty.
+  -s  --report-identical-files  Report when two files are the same.
+  -x PAT  --exclude=PAT  Exclude files that match PAT.
+  -X FILE  --exclude-from=FILE  Exclude files that match any pattern in FILE.
+  -S FILE  --starting-file=FILE  Start with FILE when comparing directories.
+  --from-file=FILE1  Compare FILE1 to all operands.  FILE1 can be a directory.
+  --to-file=FILE2  Compare all operands to FILE2.  FILE2 can be a directory.
+
+  --horizon-lines=NUM  Keep NUM lines of the common prefix and suffix.
+  -d  --minimal  Try hard to find a smaller set of changes.
+  --speed-large-files  Assume large files and many scattered small changes.
+
+  -v  --version  Output version info.
+  --help  Output this help.
+
+FILES are 'FILE1 FILE2' or 'DIR1 DIR2' or 'DIR FILE...' or 'FILE... DIR'.
+If --from-file or --to-file is given, there are no restrictions on FILES.
+If a FILE is '-', read standard input.
+Exit status is 0 if inputs are the same, 1 if different, 2 if trouble.
+
+Report bugs to: bug-diffutils@gnu.org
+GNU diffutils home page: <http://www.gnu.org/software/diffutils/>
+General help using GNU software: <http://www.gnu.org/gethelp/>
+
+9) Ensure that the ChangeLog entry works
+
+[make distdir]
+
+[emacs diffutils*/src/ChangeLog] to inspect contents. My ChangeLog entry is now
+present.
+
+There is also a ChangeLog present in diffutils*/ChangeLog, which also contains 
+my exact same ChangeLog entry.
+
+10) Describe a merge to the GNU Emacs git repository
+
+[ssh -X lichy@lnxsrv05.seas.ucla.edu] to connect to the SEAS Server with X11 
+forwarding enabled
+
+[cd ~eggert/src/gnu/emacs-CS-35L], [gitk] to run gitk on the specified GNU
+Emacs git repo
+
+XQuartz now opens with the visualization of the master branch details.
+
+First of all, the newest merge that is not newer than 1/25/15 was made on 
+1/25/15 at 23:56:37, made by Trevor Murphy
+
+There are a few subwindows that were opened. 
+
+The top left subwindow shows the tree representation of all the commits and 
+merges to the master branch. The top middle subwindow shows the author of the 
+commit or merge, along with his/her email. The top right subwindow shows the 
+date of the commit/merge.
+
+There is a bar across the middle of the GUI showing the SHA ID for a 
+selected commit/merge. It also gives the option to search through the whole
+GUI for any keywords.
+
+The bottom left side shows three subwindows; the top gives details about
+a commit, including the author, parent and child commits, and branches. 
+For example, the author was Trevor Murphy and the committer was 
+Katsumi Yamaoka. The middle subwindow shows the ChangeLog for that commit, and
+in this specific case, it shows that the mm-decode.el file was changed to
+"Make non-string methods work." Lastly, the bottom subwindow shows the 
+differences, in a '.el' file format, although the differences themselves are 
+similar to the format resulted by from the diff command.
+
+The bottom right side has a subwindow that contains a comment section, outlining
+the files displayed on the bottom left side. In this case, lisp/gnus/ChangeLog 
+and list/gnus/nnimap.el are shown.
+
+
+
+
+
+
+
+
+
+
+
+

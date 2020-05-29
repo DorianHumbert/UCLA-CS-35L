@@ -1,0 +1,327 @@
+Alex Chen
+005299047
+Assignment 8
+Laboratory
+
+-------------
+
+1) Get a copy of the Diffutils repository
+
+[git clone https://git.savannah.gnu.org/git/diffutils.git]
+
+2) Get a log of changes to the master branch
+
+[cd diffutils]
+[git log master > ../git-log.txt]
+
+3) Generate a list of tags
+
+[git tag > ../git-tags.txt]
+
+4) Find the commit of the patch to the quote implementation
+
+[less git-log.txt], then [C-s "maint: quote"] to find the commit
+commit 62ca21c8c1a5aa3488589dcb191a4ef04ae9ed4f is the commit that changes
+the quote implementation
+
+[git show 62ca21c8c1a5aa3488589dcb191a4ef04ae9ed4f] > ../quote-patch.txt]
+to show the log message and textual diff, and save it into quote-patch.txt
+Essentially, git show can produce patch files from a commit - in this case, 
+the commit to resolve the quote issue is turned into a patch file.
+
+5) Checkout Diffutils version 3.0
+
+[git checkout v3.0], and there is a warning outputted to standard out, stating
+that I am now in the 'detached HEAD' state (meaning there is no branch) from
+the commit I am currently at.
+
+6) Apply quote-patch.txt to version 3.0
+
+[less ../quote-patch.txt] to look at the filepaths to determine which
+-p option to pass (-p1 is needed)
+
+[patch -p1 < ../quote-patch.txt] to apply the patch to resolve the quote 
+issue. Git was unable to determine 3 files to patch, so I skipped them as a 
+result.
+
+7) Get an overview of what happened
+
+[git status] shows that there were many files, especially in the src directory
+that were modified, while there were many files (also especially in the src
+directory) that were added for the first time, and thus are "untracked."
+
+COMPLETE OUTPUT HERE:
+
+HEAD detached at v3.0
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   NEWS
+	modified:   README
+	modified:   TODO
+	modified:   doc/diagmeet.note
+	modified:   ms/config.bat
+	modified:   ms/config.site
+	modified:   po/en.po
+	modified:   src/analyze.c
+	modified:   src/cmp.c
+	modified:   src/context.c
+	modified:   src/diff.c
+	modified:   src/diff.h
+	modified:   src/diff3.c
+	modified:   src/dir.c
+	modified:   src/ifdef.c
+	modified:   src/io.c
+	modified:   src/sdiff.c
+	modified:   src/side.c
+	modified:   src/system.h
+	modified:   src/util.c
+	modified:   tests/help-version
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	NEWS.orig
+	README-hacking.orig
+	README-hacking.rej
+	README.orig
+	README.rej
+	cfg.mk.orig
+	cfg.mk.rej
+	ms/config.site.orig
+	src/cmp.c.orig
+	src/context.c.orig
+	src/diff.c.orig
+	src/diff.c.rej
+	src/diff.h.orig
+	src/diff3.c.orig
+	src/diff3.c.rej
+	src/dir.c.orig
+	src/sdiff.c.orig
+	src/system.h.orig
+	src/util.c.orig
+	tests/help-version.orig
+
+8) Researching Emacs' vc-diff and vc-revert
+
+vc-diff will compare the work files from the original VC fileset to the
+original versions. For this specific case, it will display the differences
+between the file before and after the patch was applied. It displays the 
+diff in a new window (the *vc-diff* buffer).
+
+vc-revert will revert the work files in the current VC fileset to the last 
+revision (pre-patch).
+
+diff-apply-hunk will apply a hunk to the target file. Preceded by C-u will 
+revert the file by applying the reverse of the hunk. (A hunk is a "hunk" of 
+changes applied by a patch - a contiguous chunk of diff lines.)
+
+diff-goto-source will go to the source code of a diff hunk.
+
+9) Revert changes to non .c files, undo all changes except for those to 
+character string constants in .c files
+
+The files under consideration are only those under "Changes not staged
+for commit" because these are the files from which the quote patch
+directly applies.
+
+For all non .c files, with 'file' as the filename:
+[emacs file], [C-x v u], and [yesENTER] to revert changes
+[C-x v =] can be run before reverting changes to ensure that changes
+were properly reverted
+
+For all .c files, with 'file' as the filename:
+[emacs file], [C-x v =], and then for all hunks not involving
+character string constants, [C-u C-c C-a]. [C-c C-c] can be used to
+jump to the source code to confirm that the diff hunk does not apply to a 
+constant c-string for any unclear cases. Only changes applied to comments 
+are undone because they do not affect the functionality of the patch, and the 
+client would prefer the most conservative change possible.
+
+10) Examine src/*.c.rej to see rejected patches to files in the src directory
+
+[ls src/*.c.rej] to see which files should be examined, they are
+src/diff.c.rej and src/diff3.c.rej
+
+[emacs src/diff.c.rej src/diff.c] and
+[emacs src/diff3.c.rej src/diff3.c] to open the rejected patches and the 
+original source code
+
+Go through the rejected patches and manually apply them to the original source
+code. Essentially, all grave accents (`) that affect the functionality of the
+code (are not comments) are replaced with single ticks ('). Note that
+[C-c C-c] will not find the original code from the patch file, which makes
+sense because this is probably the reason the patch failed to be applied.
+
+11) Remove untracked files
+
+[git clean -f] will forcefully remove untracked files.
+
+12) Run git status and git diff
+
+[git status] outputs half a dozen files as expected.
+These files are those from Diffutils v3.0 that ended up being modified (the 
+patch had a functional effect only on these files).
+
+[git diff > ../quote-3.0-patch.txt], then [cat ../quote-3.0-patch.txt | wc -l] 
+to double check patch length in lines. There were exactly 326 lines, which is
+as expected (anywhere from 300-400 lines is expected). quote-3.0-patch.txt 
+is essentially the patch to resolve the quote issue, but hand-modified to 
+work for version 3.0, while making only the least changes necessary.
+
+13) Build the modified version of Diffutils
+
+[ldd --version] to ensure the GNU C Library version is earlier than 2.16; if 
+not, then a patch must be applied in a further step. I was connected
+to linux server 5, which had version 2.12 of glibc
+
+[less README-hacking] to determine how to build Diffutils:
+
+[./bootstrap] to get the other files from other source packages required
+in building, then [./configure], [make], and [make check].
+
+Note: running [make check] does throw some errors, such as [check-recursive], 
+but diff works as expected.
+
+[./src/diff . -], [./src/diff --help] to ensure that all grave accents are 
+replaced with single ticks, and they are.
+
+Output of [./src/diff . -] is:
+
+"diff: cannot compare '-' to a directory"
+
+Output of [./src/diff --help] is:
+
+Usage: ./src/diff [OPTION]... FILES
+Compare files line by line.
+
+  -i  --ignore-case  Ignore case differences in file contents.
+  --ignore-file-name-case  Ignore case when comparing file names.
+  --no-ignore-file-name-case  Consider case when comparing file names.
+  -E  --ignore-tab-expansion  Ignore changes due to tab expansion.
+  -b  --ignore-space-change  Ignore changes in the amount of white space.
+  -w  --ignore-all-space  Ignore all white space.
+  -B  --ignore-blank-lines  Ignore changes whose lines are all blank.
+  -I RE  --ignore-matching-lines=RE  Ignore changes whose lines all match RE.
+  --strip-trailing-cr  Strip trailing carriage return on input.
+  -a  --text  Treat all files as text.
+
+  -c  -C NUM  --context[=NUM]  Output NUM (default 3) lines of copied context.
+  -u  -U NUM  --unified[=NUM]  Output NUM (default 3) lines of unified context.
+    --label LABEL  Use LABEL instead of file name.
+    -p  --show-c-function  Show which C function each change is in.
+    -F RE  --show-function-line=RE  Show the most recent line matching RE.
+  -q  --brief  Output only whether files differ.
+  -e  --ed  Output an ed script.
+  --normal  Output a normal diff.
+  -n  --rcs  Output an RCS format diff.
+  -y  --side-by-side  Output in two columns.
+    -W NUM  --width=NUM  Output at most NUM (default 130) print columns.
+    --left-column  Output only the left column of common lines.
+    --suppress-common-lines  Do not output common lines.
+  -D NAME  --ifdef=NAME  Output merged file to show '#ifdef NAME' diffs.
+  --GTYPE-group-format=GFMT  Similar, but format GTYPE input groups with GFMT.
+  --line-format=LFMT  Similar, but format all input lines with LFMT.
+  --LTYPE-line-format=LFMT  Similar, but format LTYPE input lines with LFMT.
+    LTYPE is 'old', 'new', or 'unchanged'.  GTYPE is LTYPE or 'changed'.
+    GFMT may contain:
+      %<  lines from FILE1
+      %>  lines from FILE2
+      %=  lines common to FILE1 and FILE2
+      %[-][WIDTH][.[PREC]]{doxX}LETTER  printf-style spec for LETTER
+        LETTERs are as follows for new group, lower case for old group:
+          F  first line number
+          L  last line number
+          N  number of lines = L-F+1
+          E  F-1
+          M  L+1
+    LFMT may contain:
+      %L  contents of line
+      %l  contents of line, excluding any trailing newline
+      %[-][WIDTH][.[PREC]]{doxX}n  printf-style spec for input line number
+    Either GFMT or LFMT may contain:
+      %%  %
+      %c'C'  the single character C
+      %c'\OOO'  the character with octal code OOO
+
+  -l  --paginate  Pass the output through 'pr' to paginate it.
+  -t  --expand-tabs  Expand tabs to spaces in output.
+  -T  --initial-tab  Make tabs line up by prepending a tab.
+  --tabsize=NUM  Tab stops are every NUM (default 8) print columns.
+  --suppress-blank-empty  Suppress space or tab before empty output lines.
+
+  -r  --recursive  Recursively compare any subdirectories found.
+  -N  --new-file  Treat absent files as empty.
+  --unidirectional-new-file  Treat absent first files as empty.
+  -s  --report-identical-files  Report when two files are the same.
+  -x PAT  --exclude=PAT  Exclude files that match PAT.
+  -X FILE  --exclude-from=FILE  Exclude files that match any pattern in FILE.
+  -S FILE  --starting-file=FILE  Start with FILE when comparing directories.
+  --from-file=FILE1  Compare FILE1 to all operands.  FILE1 can be a directory.
+  --to-file=FILE2  Compare all operands to FILE2.  FILE2 can be a directory.
+
+  --horizon-lines=NUM  Keep NUM lines of the common prefix and suffix.
+  -d  --minimal  Try hard to find a smaller set of changes.
+  --speed-large-files  Assume large files and many scattered small changes.
+
+  -v  --version  Output version info.
+  --help  Output this help.
+
+FILES are 'FILE1 FILE2' or 'DIR1 DIR2' or 'DIR FILE...' or 'FILE... DIR'.
+If --from-file or --to-file is given, there are no restrictions on FILES.
+If a FILE is '-', read standard input.
+Exit status is 0 if inputs are the same, 1 if different, 2 if trouble.
+
+Report bugs to: bug-diffutils@gnu.org
+GNU diffutils home page: <http://www.gnu.org/software/diffutils/>
+General help using GNU software: <http://www.gnu.org/gethelp/>
+
+14) Sanity check
+
+[cd ..]
+[git clone https://git.savannah.gnu.org/git/diffutils.git diffutils-3.0] to 
+get a copy of the unmodified code
+
+[cd diffutils-3.0], [git checkout v3.0] to get the initial source code 
+of diffutils version 3.0 that I started with within a new directory.
+
+[cp -r diffutils diffutils-3.0-patch] to copy my modified version of
+Diffutils 3.0 to a new directory. All changes are captured in this directory
+and now can be compared with the given command.
+
+[./diffutils/src/diff -pru diffutils-3.0 diffutils-3.0-patch >quote-3.0-test.txt]
+to run my implementation of diff and find the differences in the original 
+diffutils 3.0 repository and the patched repository, and save the output.
+
+15) Compare quote-3.0-text.txt and quote-3.0-patch.txt
+
+[diff quote-3.0-test.txt quote-3.0-patch.txt] to essentially compare the 
+differences in the modified vs unmodified versions of Diffutils to the patches
+and modifications made (reverting changes to non .c files and reverting
+non-essential changes made to .c files)
+
+There are differences in the two files, but they are harmless
+because they are due to either a different relative filepath from the 
+differing folder locations, or due to the differences in grave accents and 
+single ticks.
+
+Differing filepath example from quote-3.0-test.txt:
+
+diff -pru diffutils-3.0/.git/config diffutils-3.0-patch/.git/config
+--- diffutils-3.0/.git/config 2020-05-26 18:48:56.227334000 -0700
++++ diffutils-3.0-patch/.git/config 2020-05-26 19:02:25.523389000 -0700
+@@ -9,3 +9,5 @@
+ [branch "master"]
+  remote = origin
+  merge = refs/heads/master
++[submodule "gnulib"]
++ url = git://git.sv.gnu.org/gnulib.git
+
+
+
+
+
+
+
+
+
+

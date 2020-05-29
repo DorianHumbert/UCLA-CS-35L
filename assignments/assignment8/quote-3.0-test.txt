@@ -1,0 +1,1292 @@
+Only in diffutils-3.0-patch: #README-hacking#
+diff -pru diffutils-3.0/.git/config diffutils-3.0-patch/.git/config
+--- diffutils-3.0/.git/config	2020-05-26 18:48:56.227334000 -0700
++++ diffutils-3.0-patch/.git/config	2020-05-26 19:02:25.523389000 -0700
+@@ -9,3 +9,5 @@
+ [branch "master"]
+ 	remote = origin
+ 	merge = refs/heads/master
++[submodule "gnulib"]
++	url = git://git.sv.gnu.org/gnulib.git
+diff -pru diffutils-3.0/.git/hooks/applypatch-msg.sample diffutils-3.0-patch/.git/hooks/applypatch-msg.sample
+--- diffutils-3.0/.git/hooks/applypatch-msg.sample	2020-05-26 18:48:53.037314000 -0700
++++ diffutils-3.0-patch/.git/hooks/applypatch-msg.sample	2020-05-26 19:02:25.599395000 -0700
+@@ -10,6 +10,6 @@
+ # To enable this hook, rename this file to "applypatch-msg".
+ 
+ . git-sh-setup
+-test -x "$GIT_DIR/hooks/commit-msg" &&
+-	exec "$GIT_DIR/hooks/commit-msg" ${1+"$@"}
++commitmsg="$(git rev-parse --git-path hooks/commit-msg)"
++test -x "$commitmsg" && exec "$commitmsg" ${1+"$@"}
+ :
+Only in diffutils-3.0-patch/.git/hooks: fsmonitor-watchman.sample
+diff -pru diffutils-3.0/.git/hooks/pre-applypatch.sample diffutils-3.0-patch/.git/hooks/pre-applypatch.sample
+--- diffutils-3.0/.git/hooks/pre-applypatch.sample	2020-05-26 18:48:53.056315000 -0700
++++ diffutils-3.0-patch/.git/hooks/pre-applypatch.sample	2020-05-26 19:02:25.586394000 -0700
+@@ -9,6 +9,6 @@
+ # To enable this hook, rename this file to "pre-applypatch".
+ 
+ . git-sh-setup
+-test -x "$GIT_DIR/hooks/pre-commit" &&
+-	exec "$GIT_DIR/hooks/pre-commit" ${1+"$@"}
++precommit="$(git rev-parse --git-path hooks/pre-commit)"
++test -x "$precommit" && exec "$precommit" ${1+"$@"}
+ :
+diff -pru diffutils-3.0/.git/hooks/pre-commit.sample diffutils-3.0-patch/.git/hooks/pre-commit.sample
+--- diffutils-3.0/.git/hooks/pre-commit.sample	2020-05-26 18:48:53.065314000 -0700
++++ diffutils-3.0-patch/.git/hooks/pre-commit.sample	2020-05-26 19:02:25.570391000 -0700
+@@ -12,11 +12,11 @@ then
+ 	against=HEAD
+ else
+ 	# Initial commit: diff against an empty tree object
+-	against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
++	against=$(git hash-object -t tree /dev/null)
+ fi
+ 
+ # If you want to allow non-ASCII filenames set this variable to true.
+-allownonascii=$(git config --bool hooks.allownonascii)
++allownonascii=$(git config --type=bool hooks.allownonascii)
+ 
+ # Redirect output to stderr.
+ exec 1>&2
+Only in diffutils-3.0-patch/.git/hooks: pre-merge-commit.sample
+diff -pru diffutils-3.0/.git/hooks/pre-push.sample diffutils-3.0-patch/.git/hooks/pre-push.sample
+--- diffutils-3.0/.git/hooks/pre-push.sample	2020-05-26 18:48:53.074313000 -0700
++++ diffutils-3.0-patch/.git/hooks/pre-push.sample	2020-05-26 19:02:25.558391000 -0700
+@@ -24,7 +24,6 @@ url="$2"
+ 
+ z40=0000000000000000000000000000000000000000
+ 
+-IFS=' '
+ while read local_ref local_sha remote_ref remote_sha
+ do
+ 	if [ "$local_sha" = $z40 ]
+@@ -45,7 +44,7 @@ do
+ 		commit=`git rev-list -n 1 --grep '^WIP' "$range"`
+ 		if [ -n "$commit" ]
+ 		then
+-			echo "Found WIP commit in $local_ref, not pushing"
++			echo >&2 "Found WIP commit in $local_ref, not pushing"
+ 			exit 1
+ 		fi
+ 	fi
+diff -pru diffutils-3.0/.git/hooks/pre-rebase.sample diffutils-3.0-patch/.git/hooks/pre-rebase.sample
+--- diffutils-3.0/.git/hooks/pre-rebase.sample	2020-05-26 18:48:53.082315000 -0700
++++ diffutils-3.0-patch/.git/hooks/pre-rebase.sample	2020-05-26 19:02:25.556391000 -0700
+@@ -58,7 +58,7 @@ then
+ 	not_in_topic=`git rev-list "^$topic" master`
+ 	if test -z "$not_in_topic"
+ 	then
+-		echo >&2 "$topic is already up-to-date with master"
++		echo >&2 "$topic is already up to date with master"
+ 		exit 1 ;# we could allow it, but there is no point.
+ 	else
+ 		exit 0
+@@ -88,9 +88,7 @@ else
+ 	exit 1
+ fi
+ 
+-exit 0
+-
+-################################################################
++<<\DOC_END
+ 
+ This sample hook safeguards topic branches that have been
+ published from being rewound.
+@@ -167,3 +165,5 @@ To compute (2):
+ 	git rev-list master..topic
+ 
+ 	if this is empty, it is fully merged to "master".
++
++DOC_END
+Only in diffutils-3.0-patch/.git/hooks: pre-receive.sample
+diff -pru diffutils-3.0/.git/hooks/prepare-commit-msg.sample diffutils-3.0-patch/.git/hooks/prepare-commit-msg.sample
+--- diffutils-3.0/.git/hooks/prepare-commit-msg.sample	2020-05-26 18:48:53.029313000 -0700
++++ diffutils-3.0-patch/.git/hooks/prepare-commit-msg.sample	2020-05-26 19:02:25.560391000 -0700
+@@ -9,8 +9,8 @@
+ #
+ # To enable this hook, rename this file to "prepare-commit-msg".
+ 
+-# This hook includes three examples.  The first comments out the
+-# "Conflicts:" part of a merge commit.
++# This hook includes three examples. The first one removes the
++# "# Please enter the commit message..." help message.
+ #
+ # The second includes the output of "git diff --name-status -r"
+ # into the message, just before the "git status" output.  It is
+@@ -20,17 +20,23 @@
+ # The third example adds a Signed-off-by line to the message, that can
+ # still be edited.  This is rarely a good idea.
+ 
+-case "$2,$3" in
+-  merge,)
+-    /usr/bin/perl -i.bak -ne 's/^/# /, s/^# #/#/ if /^Conflicts/ .. /#/; print' "$1" ;;
++COMMIT_MSG_FILE=$1
++COMMIT_SOURCE=$2
++SHA1=$3
+ 
+-# ,|template,)
+-#   /usr/bin/perl -i.bak -pe '
+-#      print "\n" . `git diff --cached --name-status -r`
+-#	 if /^#/ && $first++ == 0' "$1" ;;
++/usr/bin/perl -i.bak -ne 'print unless(m/^. Please enter the commit message/..m/^#$/)' "$COMMIT_MSG_FILE"
+ 
+-  *) ;;
+-esac
++# case "$COMMIT_SOURCE,$SHA1" in
++#  ,|template,)
++#    /usr/bin/perl -i.bak -pe '
++#       print "\n" . `git diff --cached --name-status -r`
++# 	 if /^#/ && $first++ == 0' "$COMMIT_MSG_FILE" ;;
++#  *) ;;
++# esac
+ 
+-# SOB=$(git var GIT_AUTHOR_IDENT | sed -n 's/^\(.*>\).*$/Signed-off-by: \1/p')
+-# grep -qs "^$SOB" "$1" || echo "$SOB" >> "$1"
++# SOB=$(git var GIT_COMMITTER_IDENT | sed -n 's/^\(.*>\).*$/Signed-off-by: \1/p')
++# git interpret-trailers --in-place --trailer "$SOB" "$COMMIT_MSG_FILE"
++# if test -z "$COMMIT_SOURCE"
++# then
++#   /usr/bin/perl -i.bak -pe 'print "\n" if !$first_line++' "$COMMIT_MSG_FILE"
++# fi
+diff -pru diffutils-3.0/.git/hooks/update.sample diffutils-3.0-patch/.git/hooks/update.sample
+--- diffutils-3.0/.git/hooks/update.sample	2020-05-26 18:48:53.091313000 -0700
++++ diffutils-3.0-patch/.git/hooks/update.sample	2020-05-26 19:02:25.552392000 -0700
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ #
+-# An example hook script to blocks unannotated tags from entering.
++# An example hook script to block unannotated tags from entering.
+ # Called by "git receive-pack" with arguments: refname sha1-old sha1-new
+ #
+ # To enable this hook, rename this file to "update".
+@@ -43,11 +43,11 @@ if [ -z "$refname" -o -z "$oldrev" -o -z
+ fi
+ 
+ # --- Config
+-allowunannotated=$(git config --bool hooks.allowunannotated)
+-allowdeletebranch=$(git config --bool hooks.allowdeletebranch)
+-denycreatebranch=$(git config --bool hooks.denycreatebranch)
+-allowdeletetag=$(git config --bool hooks.allowdeletetag)
+-allowmodifytag=$(git config --bool hooks.allowmodifytag)
++allowunannotated=$(git config --type=bool hooks.allowunannotated)
++allowdeletebranch=$(git config --type=bool hooks.allowdeletebranch)
++denycreatebranch=$(git config --type=bool hooks.denycreatebranch)
++allowdeletetag=$(git config --type=bool hooks.allowdeletetag)
++allowmodifytag=$(git config --type=bool hooks.allowmodifytag)
+ 
+ # check for no description
+ projectdesc=$(sed -e '1q' "$GIT_DIR/description")
+Binary files diffutils-3.0/.git/index and diffutils-3.0-patch/.git/index differ
+diff -pru diffutils-3.0/.git/logs/HEAD diffutils-3.0-patch/.git/logs/HEAD
+--- diffutils-3.0/.git/logs/HEAD	2020-05-26 18:49:40.846611000 -0700
++++ diffutils-3.0-patch/.git/logs/HEAD	2020-05-26 19:02:24.898387000 -0700
+@@ -1,2 +1,2 @@
+-0000000000000000000000000000000000000000 7c13bbbeca620e573827636311c5e76e3e3e8da6 Alex Lichy Chen <lichy@lnxsrv05.seas.ucla.edu> 1590544136 -0700	clone: from https://git.savannah.gnu.org/git/diffutils.git
+-7c13bbbeca620e573827636311c5e76e3e3e8da6 022cd5c5eb647a22a4daa5fe5cbc10af6d5a1112 Alex Lichy Chen <lichy@lnxsrv05.seas.ucla.edu> 1590544180 -0700	checkout: moving from master to v3.0
++0000000000000000000000000000000000000000 7c13bbbeca620e573827636311c5e76e3e3e8da6 Alex Lichy Chen <lichy@lnxsrv07.seas.ucla.edu> 1590521758 -0700	clone: from https://git.savannah.gnu.org/git/diffutils.git
++7c13bbbeca620e573827636311c5e76e3e3e8da6 022cd5c5eb647a22a4daa5fe5cbc10af6d5a1112 Alex Lichy Chen <lichy@lnxsrv07.seas.ucla.edu> 1590523637 -0700	checkout: moving from master to v3.0
+diff -pru diffutils-3.0/.git/logs/refs/heads/master diffutils-3.0-patch/.git/logs/refs/heads/master
+--- diffutils-3.0/.git/logs/refs/heads/master	2020-05-26 18:48:56.222332000 -0700
++++ diffutils-3.0-patch/.git/logs/refs/heads/master	2020-05-26 19:02:24.886388000 -0700
+@@ -1 +1 @@
+-0000000000000000000000000000000000000000 7c13bbbeca620e573827636311c5e76e3e3e8da6 Alex Lichy Chen <lichy@lnxsrv05.seas.ucla.edu> 1590544136 -0700	clone: from https://git.savannah.gnu.org/git/diffutils.git
++0000000000000000000000000000000000000000 7c13bbbeca620e573827636311c5e76e3e3e8da6 Alex Lichy Chen <lichy@lnxsrv07.seas.ucla.edu> 1590521758 -0700	clone: from https://git.savannah.gnu.org/git/diffutils.git
+diff -pru diffutils-3.0/.git/logs/refs/remotes/origin/HEAD diffutils-3.0-patch/.git/logs/refs/remotes/origin/HEAD
+--- diffutils-3.0/.git/logs/refs/remotes/origin/HEAD	2020-05-26 18:48:56.216334000 -0700
++++ diffutils-3.0-patch/.git/logs/refs/remotes/origin/HEAD	2020-05-26 19:02:24.871391000 -0700
+@@ -1 +1 @@
+-0000000000000000000000000000000000000000 7c13bbbeca620e573827636311c5e76e3e3e8da6 Alex Lichy Chen <lichy@lnxsrv05.seas.ucla.edu> 1590544136 -0700	clone: from https://git.savannah.gnu.org/git/diffutils.git
++0000000000000000000000000000000000000000 7c13bbbeca620e573827636311c5e76e3e3e8da6 Alex Lichy Chen <lichy@lnxsrv07.seas.ucla.edu> 1590521758 -0700	clone: from https://git.savannah.gnu.org/git/diffutils.git
+Only in diffutils-3.0-patch/.git: modules
+Only in diffutils-3.0/.git/objects/pack: pack-0dd515f3b8452f0b6cd3203a20bb5801034cf1ea.idx
+Only in diffutils-3.0/.git/objects/pack: pack-0dd515f3b8452f0b6cd3203a20bb5801034cf1ea.pack
+Only in diffutils-3.0-patch/.git/objects/pack: pack-afa47ea425a319f03641d4293b33ea4982e6e12e.idx
+Only in diffutils-3.0-patch/.git/objects/pack: pack-afa47ea425a319f03641d4293b33ea4982e6e12e.pack
+diff -pru diffutils-3.0/.git/packed-refs diffutils-3.0-patch/.git/packed-refs
+--- diffutils-3.0/.git/packed-refs	2020-05-26 18:48:56.207332000 -0700
++++ diffutils-3.0-patch/.git/packed-refs	2020-05-26 19:02:24.865391000 -0700
+@@ -1,4 +1,4 @@
+-# pack-refs with: peeled fully-peeled 
++# pack-refs with: peeled fully-peeled sorted 
+ 7c13bbbeca620e573827636311c5e76e3e3e8da6 refs/remotes/origin/master
+ 760bd9a98617b3c26871afc7721a98775ad86bd8 refs/tags/v2.7
+ ^4e44a14836a44835c63c0534b5895ac47d632759
+Only in diffutils-3.0-patch: ABOUT-NLS
+Only in diffutils-3.0-patch: ChangeLog
+Only in diffutils-3.0-patch: GNUmakefile
+Only in diffutils-3.0-patch: INSTALL
+Only in diffutils-3.0-patch: Makefile
+Only in diffutils-3.0-patch: Makefile.in
+Only in diffutils-3.0-patch: aclocal.m4
+Only in diffutils-3.0-patch: autom4te.cache
+Only in diffutils-3.0-patch: build-aux
+Only in diffutils-3.0-patch: config.log
+Only in diffutils-3.0-patch: config.status
+Only in diffutils-3.0-patch: configure
+Only in diffutils-3.0-patch/doc: .gitignore
+Only in diffutils-3.0-patch/doc: Makefile
+Only in diffutils-3.0-patch/doc: Makefile.in
+Only in diffutils-3.0-patch/doc: diff.info
+Only in diffutils-3.0-patch/doc: fdl.texi
+Only in diffutils-3.0-patch/doc: gendocs_template
+Only in diffutils-3.0-patch/doc: stamp-vti
+Only in diffutils-3.0-patch/doc: version.texi
+Only in diffutils-3.0-patch/gnulib: .cvsignore
+Only in diffutils-3.0-patch/gnulib: .git
+Only in diffutils-3.0-patch/gnulib: .gitattributes
+Only in diffutils-3.0-patch/gnulib: .gitignore
+Only in diffutils-3.0-patch/gnulib: COPYING
+Only in diffutils-3.0-patch/gnulib: ChangeLog
+Only in diffutils-3.0-patch/gnulib: DEPENDENCIES
+Only in diffutils-3.0-patch/gnulib: MODULES.html.sh
+Only in diffutils-3.0-patch/gnulib: Makefile
+Only in diffutils-3.0-patch/gnulib: NEWS
+Only in diffutils-3.0-patch/gnulib: README
+Only in diffutils-3.0-patch/gnulib: build-aux
+Only in diffutils-3.0-patch/gnulib: check-module
+Only in diffutils-3.0-patch/gnulib: config
+Only in diffutils-3.0-patch/gnulib: doc
+Only in diffutils-3.0-patch/gnulib: gnulib-tool
+Only in diffutils-3.0-patch/gnulib: lib
+Only in diffutils-3.0-patch/gnulib: m4
+Only in diffutils-3.0-patch/gnulib: modules
+Only in diffutils-3.0-patch/gnulib: posix-modules
+Only in diffutils-3.0-patch/gnulib: tests
+Only in diffutils-3.0-patch/gnulib: top
+Only in diffutils-3.0-patch/gnulib: users.txt
+Only in diffutils-3.0-patch/gnulib-tests: .deps
+Only in diffutils-3.0-patch/gnulib-tests: .gitignore
+Only in diffutils-3.0-patch/gnulib-tests: Makefile
+Only in diffutils-3.0-patch/gnulib-tests: Makefile.in
+Only in diffutils-3.0-patch/gnulib-tests: arg-nonnull.h
+Only in diffutils-3.0-patch/gnulib-tests: argmatch.c
+Only in diffutils-3.0-patch/gnulib-tests: argmatch.h
+Only in diffutils-3.0-patch/gnulib-tests: binary-io.h
+Only in diffutils-3.0-patch/gnulib-tests: c++defs.h
+Only in diffutils-3.0-patch/gnulib-tests: gnulib.mk
+Only in diffutils-3.0-patch/gnulib-tests: hash-pjw.c
+Only in diffutils-3.0-patch/gnulib-tests: hash-pjw.h
+Only in diffutils-3.0-patch/gnulib-tests: init.sh
+Only in diffutils-3.0-patch/gnulib-tests: locale
+Only in diffutils-3.0-patch/gnulib-tests: macros.h
+Only in diffutils-3.0-patch/gnulib-tests: pathmax.h
+Only in diffutils-3.0-patch/gnulib-tests: putenv.c
+Only in diffutils-3.0-patch/gnulib-tests: same-inode.h
+Only in diffutils-3.0-patch/gnulib-tests: setenv.c
+Only in diffutils-3.0-patch/gnulib-tests: signature.h
+Only in diffutils-3.0-patch/gnulib-tests: sleep.c
+Only in diffutils-3.0-patch/gnulib-tests: symlink.c
+Only in diffutils-3.0-patch/gnulib-tests: test-alloca-opt.c
+Only in diffutils-3.0-patch/gnulib-tests: test-argmatch.c
+Only in diffutils-3.0-patch/gnulib-tests: test-binary-io.c
+Only in diffutils-3.0-patch/gnulib-tests: test-binary-io.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-bitrotate.c
+Only in diffutils-3.0-patch/gnulib-tests: test-btowc.c
+Only in diffutils-3.0-patch/gnulib-tests: test-btowc1.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-btowc2.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-c-ctype.c
+Only in diffutils-3.0-patch/gnulib-tests: test-c-stack.c
+Only in diffutils-3.0-patch/gnulib-tests: test-c-stack.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-c-stack2.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-c-strcase.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-c-strcasecmp.c
+Only in diffutils-3.0-patch/gnulib-tests: test-c-strncasecmp.c
+Only in diffutils-3.0-patch/gnulib-tests: test-dirname.c
+Only in diffutils-3.0-patch/gnulib-tests: test-dup2.c
+Only in diffutils-3.0-patch/gnulib-tests: test-environ.c
+Only in diffutils-3.0-patch/gnulib-tests: test-errno.c
+Only in diffutils-3.0-patch/gnulib-tests: test-exclude.c
+Only in diffutils-3.0-patch/gnulib-tests: test-exclude1.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-exclude2.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-exclude3.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-exclude4.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-exclude5.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-exclude6.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-exclude7.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-fcntl-h.c
+Only in diffutils-3.0-patch/gnulib-tests: test-fcntl.c
+Only in diffutils-3.0-patch/gnulib-tests: test-fnmatch.c
+Only in diffutils-3.0-patch/gnulib-tests: test-freopen-safer.c
+Only in diffutils-3.0-patch/gnulib-tests: test-freopen.c
+Only in diffutils-3.0-patch/gnulib-tests: test-getdtablesize.c
+Only in diffutils-3.0-patch/gnulib-tests: test-getopt.c
+Only in diffutils-3.0-patch/gnulib-tests: test-getopt.h
+Only in diffutils-3.0-patch/gnulib-tests: test-getopt_long.h
+Only in diffutils-3.0-patch/gnulib-tests: test-gettimeofday.c
+Only in diffutils-3.0-patch/gnulib-tests: test-hash.c
+Only in diffutils-3.0-patch/gnulib-tests: test-iconv-h.c
+Only in diffutils-3.0-patch/gnulib-tests: test-iconv.c
+Only in diffutils-3.0-patch/gnulib-tests: test-inttypes.c
+Only in diffutils-3.0-patch/gnulib-tests: test-langinfo.c
+Only in diffutils-3.0-patch/gnulib-tests: test-lstat.c
+Only in diffutils-3.0-patch/gnulib-tests: test-lstat.h
+Only in diffutils-3.0-patch/gnulib-tests: test-malloca.c
+Only in diffutils-3.0-patch/gnulib-tests: test-mbrtowc.c
+Only in diffutils-3.0-patch/gnulib-tests: test-mbrtowc1.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbrtowc2.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbrtowc3.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbrtowc4.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbscasecmp.c
+Only in diffutils-3.0-patch/gnulib-tests: test-mbscasecmp.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsinit.c
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsinit.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsrtowcs.c
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsrtowcs1.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsrtowcs2.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsrtowcs3.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsrtowcs4.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsstr1.c
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsstr2.c
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsstr2.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsstr3.c
+Only in diffutils-3.0-patch/gnulib-tests: test-mbsstr3.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-memchr.c
+Only in diffutils-3.0-patch/gnulib-tests: test-nl_langinfo.c
+Only in diffutils-3.0-patch/gnulib-tests: test-nl_langinfo.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-open.c
+Only in diffutils-3.0-patch/gnulib-tests: test-open.h
+Only in diffutils-3.0-patch/gnulib-tests: test-quotearg.c
+Only in diffutils-3.0-patch/gnulib-tests: test-quotearg.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-setenv.c
+Only in diffutils-3.0-patch/gnulib-tests: test-sigaction.c
+Only in diffutils-3.0-patch/gnulib-tests: test-signal.c
+Only in diffutils-3.0-patch/gnulib-tests: test-sleep.c
+Only in diffutils-3.0-patch/gnulib-tests: test-stat-time.c
+Only in diffutils-3.0-patch/gnulib-tests: test-stat.c
+Only in diffutils-3.0-patch/gnulib-tests: test-stat.h
+Only in diffutils-3.0-patch/gnulib-tests: test-stdbool.c
+Only in diffutils-3.0-patch/gnulib-tests: test-stddef.c
+Only in diffutils-3.0-patch/gnulib-tests: test-stdint.c
+Only in diffutils-3.0-patch/gnulib-tests: test-stdio.c
+Only in diffutils-3.0-patch/gnulib-tests: test-stdlib.c
+Only in diffutils-3.0-patch/gnulib-tests: test-strerror.c
+Only in diffutils-3.0-patch/gnulib-tests: test-striconv.c
+Only in diffutils-3.0-patch/gnulib-tests: test-string.c
+Only in diffutils-3.0-patch/gnulib-tests: test-strings.c
+Only in diffutils-3.0-patch/gnulib-tests: test-symlink.c
+Only in diffutils-3.0-patch/gnulib-tests: test-symlink.h
+Only in diffutils-3.0-patch/gnulib-tests: test-sys_stat.c
+Only in diffutils-3.0-patch/gnulib-tests: test-sys_time.c
+Only in diffutils-3.0-patch/gnulib-tests: test-sys_wait.c
+Only in diffutils-3.0-patch/gnulib-tests: test-time.c
+Only in diffutils-3.0-patch/gnulib-tests: test-unistd.c
+Only in diffutils-3.0-patch/gnulib-tests: test-unsetenv.c
+Only in diffutils-3.0-patch/gnulib-tests: test-update-copyright.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-usleep.c
+Only in diffutils-3.0-patch/gnulib-tests: test-vc-list-files-cvs.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-vc-list-files-git.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-version-etc.c
+Only in diffutils-3.0-patch/gnulib-tests: test-version-etc.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-wchar.c
+Only in diffutils-3.0-patch/gnulib-tests: test-wcrtomb.c
+Only in diffutils-3.0-patch/gnulib-tests: test-wcrtomb.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-wctype.c
+Only in diffutils-3.0-patch/gnulib-tests: test-wcwidth.c
+Only in diffutils-3.0-patch/gnulib-tests: test-xalloc-die.c
+Only in diffutils-3.0-patch/gnulib-tests: test-xalloc-die.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-xstrtol.c
+Only in diffutils-3.0-patch/gnulib-tests: test-xstrtol.sh
+Only in diffutils-3.0-patch/gnulib-tests: test-xstrtoul.c
+Only in diffutils-3.0-patch/gnulib-tests: test-xstrtoumax.c
+Only in diffutils-3.0-patch/gnulib-tests: test-xstrtoumax.sh
+Only in diffutils-3.0-patch/gnulib-tests: uniwidth
+Only in diffutils-3.0-patch/gnulib-tests: unsetenv.c
+Only in diffutils-3.0-patch/gnulib-tests: usleep.c
+Only in diffutils-3.0-patch/gnulib-tests: warn-on-use.h
+Only in diffutils-3.0-patch/gnulib-tests: wctob.c
+Only in diffutils-3.0-patch/gnulib-tests: zerosize-ptr.h
+Only in diffutils-3.0-patch/lib: .deps
+Only in diffutils-3.0-patch/lib: .gitignore
+Only in diffutils-3.0-patch/lib: Makefile
+Only in diffutils-3.0-patch/lib: Makefile.in
+Only in diffutils-3.0-patch/lib: alloca.c
+Only in diffutils-3.0-patch/lib: alloca.h
+Only in diffutils-3.0-patch/lib: alloca.in.h
+Only in diffutils-3.0-patch/lib: arg-nonnull.h
+Only in diffutils-3.0-patch/lib: basename-lgpl.c
+Only in diffutils-3.0-patch/lib: basename-lgpl.o
+Only in diffutils-3.0-patch/lib: basename.c
+Only in diffutils-3.0-patch/lib: basename.o
+Only in diffutils-3.0-patch/lib: bitrotate.h
+Only in diffutils-3.0-patch/lib: btowc.c
+Only in diffutils-3.0-patch/lib: c++defs.h
+Only in diffutils-3.0-patch/lib: c-ctype.c
+Only in diffutils-3.0-patch/lib: c-ctype.h
+Only in diffutils-3.0-patch/lib: c-ctype.o
+Only in diffutils-3.0-patch/lib: c-stack.c
+Only in diffutils-3.0-patch/lib: c-stack.h
+Only in diffutils-3.0-patch/lib: c-stack.o
+Only in diffutils-3.0-patch/lib: c-strcase.h
+Only in diffutils-3.0-patch/lib: c-strcasecmp.c
+Only in diffutils-3.0-patch/lib: c-strcasecmp.o
+Only in diffutils-3.0-patch/lib: c-strncasecmp.c
+Only in diffutils-3.0-patch/lib: c-strncasecmp.o
+Only in diffutils-3.0-patch/lib: charset.alias
+Only in diffutils-3.0-patch/lib: cmpbuf.o
+Only in diffutils-3.0-patch/lib: config.charset
+Only in diffutils-3.0-patch/lib: config.h
+Only in diffutils-3.0-patch/lib: config.hin
+Only in diffutils-3.0-patch/lib: config.hin~
+Only in diffutils-3.0-patch/lib: configmake.h
+Only in diffutils-3.0-patch/lib: diffseq.h
+Only in diffutils-3.0-patch/lib: dirname-lgpl.c
+Only in diffutils-3.0-patch/lib: dirname-lgpl.o
+Only in diffutils-3.0-patch/lib: dirname.c
+Only in diffutils-3.0-patch/lib: dirname.h
+Only in diffutils-3.0-patch/lib: dirname.o
+Only in diffutils-3.0-patch/lib: dup2.c
+Only in diffutils-3.0-patch/lib: errno.in.h
+Only in diffutils-3.0-patch/lib: error.c
+Only in diffutils-3.0-patch/lib: error.h
+Only in diffutils-3.0-patch/lib: exclude.c
+Only in diffutils-3.0-patch/lib: exclude.h
+Only in diffutils-3.0-patch/lib: exclude.o
+Only in diffutils-3.0-patch/lib: exitfail.c
+Only in diffutils-3.0-patch/lib: exitfail.h
+Only in diffutils-3.0-patch/lib: exitfail.o
+Only in diffutils-3.0-patch/lib: fcntl.c
+Only in diffutils-3.0-patch/lib: fcntl.h
+Only in diffutils-3.0-patch/lib: fcntl.in.h
+Only in diffutils-3.0-patch/lib: fcntl.o
+Only in diffutils-3.0-patch/lib: file-type.c
+Only in diffutils-3.0-patch/lib: file-type.h
+Only in diffutils-3.0-patch/lib: file-type.o
+Only in diffutils-3.0-patch/lib: fnmatch.c
+Only in diffutils-3.0-patch/lib: fnmatch.in.h
+Only in diffutils-3.0-patch/lib: fnmatch_loop.c
+Only in diffutils-3.0-patch/lib: freopen-safer.c
+Only in diffutils-3.0-patch/lib: freopen-safer.o
+Only in diffutils-3.0-patch/lib: freopen.c
+Only in diffutils-3.0-patch/lib: getdtablesize.c
+Only in diffutils-3.0-patch/lib: getopt.c
+Only in diffutils-3.0-patch/lib: getopt.in.h
+Only in diffutils-3.0-patch/lib: getopt1.c
+Only in diffutils-3.0-patch/lib: getopt_int.h
+Only in diffutils-3.0-patch/lib: gettext.h
+Only in diffutils-3.0-patch/lib: gettime.c
+Only in diffutils-3.0-patch/lib: gettime.o
+Only in diffutils-3.0-patch/lib: gettimeofday.c
+Only in diffutils-3.0-patch/lib: gnulib.mk
+Only in diffutils-3.0-patch/lib: hard-locale.c
+Only in diffutils-3.0-patch/lib: hard-locale.h
+Only in diffutils-3.0-patch/lib: hard-locale.o
+Only in diffutils-3.0-patch/lib: hash.c
+Only in diffutils-3.0-patch/lib: hash.h
+Only in diffutils-3.0-patch/lib: hash.o
+Only in diffutils-3.0-patch/lib: iconv.h
+Only in diffutils-3.0-patch/lib: iconv.in.h
+Only in diffutils-3.0-patch/lib: iconv_open-aix.gperf
+Only in diffutils-3.0-patch/lib: iconv_open-aix.h
+Only in diffutils-3.0-patch/lib: iconv_open-hpux.gperf
+Only in diffutils-3.0-patch/lib: iconv_open-hpux.h
+Only in diffutils-3.0-patch/lib: iconv_open-irix.gperf
+Only in diffutils-3.0-patch/lib: iconv_open-irix.h
+Only in diffutils-3.0-patch/lib: iconv_open-osf.gperf
+Only in diffutils-3.0-patch/lib: iconv_open-osf.h
+Only in diffutils-3.0-patch/lib: iconv_open-solaris.gperf
+Only in diffutils-3.0-patch/lib: iconv_open-solaris.h
+Only in diffutils-3.0-patch/lib: iconv_open.c
+Only in diffutils-3.0-patch/lib: ignore-value.h
+Only in diffutils-3.0-patch/lib: imaxtostr.c
+Only in diffutils-3.0-patch/lib: imaxtostr.o
+Only in diffutils-3.0-patch/lib: intprops.h
+Only in diffutils-3.0-patch/lib: inttostr.c
+Only in diffutils-3.0-patch/lib: inttostr.h
+Only in diffutils-3.0-patch/lib: inttypes.h
+Only in diffutils-3.0-patch/lib: inttypes.in.h
+Only in diffutils-3.0-patch/lib: langinfo.h
+Only in diffutils-3.0-patch/lib: langinfo.in.h
+Only in diffutils-3.0-patch/lib: libdiffutils.a
+Only in diffutils-3.0-patch/lib: localcharset.c
+Only in diffutils-3.0-patch/lib: localcharset.h
+Only in diffutils-3.0-patch/lib: localcharset.o
+Only in diffutils-3.0-patch/lib: lstat.c
+Only in diffutils-3.0-patch/lib: malloc.c
+Only in diffutils-3.0-patch/lib: malloca.c
+Only in diffutils-3.0-patch/lib: malloca.h
+Only in diffutils-3.0-patch/lib: malloca.o
+Only in diffutils-3.0-patch/lib: malloca.valgrind
+Only in diffutils-3.0-patch/lib: mbchar.c
+Only in diffutils-3.0-patch/lib: mbchar.h
+Only in diffutils-3.0-patch/lib: mbchar.o
+Only in diffutils-3.0-patch/lib: mbiter.h
+Only in diffutils-3.0-patch/lib: mbrlen.c
+Only in diffutils-3.0-patch/lib: mbrtowc.c
+Only in diffutils-3.0-patch/lib: mbscasecmp.c
+Only in diffutils-3.0-patch/lib: mbscasecmp.o
+Only in diffutils-3.0-patch/lib: mbsinit.c
+Only in diffutils-3.0-patch/lib: mbslen.c
+Only in diffutils-3.0-patch/lib: mbslen.o
+Only in diffutils-3.0-patch/lib: mbsrtowcs-state.c
+Only in diffutils-3.0-patch/lib: mbsrtowcs.c
+Only in diffutils-3.0-patch/lib: mbsstr.c
+Only in diffutils-3.0-patch/lib: mbsstr.o
+Only in diffutils-3.0-patch/lib: mbuiter.h
+Only in diffutils-3.0-patch/lib: memchr.c
+Only in diffutils-3.0-patch/lib: memchr.valgrind
+Only in diffutils-3.0-patch/lib: mkstemp.c
+Only in diffutils-3.0-patch/lib: mktime-internal.h
+Only in diffutils-3.0-patch/lib: mktime.c
+Only in diffutils-3.0-patch/lib: nl_langinfo.c
+Only in diffutils-3.0-patch/lib: offtostr.c
+Only in diffutils-3.0-patch/lib: offtostr.o
+Only in diffutils-3.0-patch/lib: open.c
+Only in diffutils-3.0-patch/lib: prepargs.o
+Only in diffutils-3.0-patch/lib: progname.c
+Only in diffutils-3.0-patch/lib: progname.h
+Only in diffutils-3.0-patch/lib: progname.o
+Only in diffutils-3.0-patch/lib: propername.c
+Only in diffutils-3.0-patch/lib: propername.h
+Only in diffutils-3.0-patch/lib: propername.o
+Only in diffutils-3.0-patch/lib: quote.c
+Only in diffutils-3.0-patch/lib: quote.h
+Only in diffutils-3.0-patch/lib: quote.o
+Only in diffutils-3.0-patch/lib: quotearg.c
+Only in diffutils-3.0-patch/lib: quotearg.h
+Only in diffutils-3.0-patch/lib: quotearg.o
+Only in diffutils-3.0-patch/lib: ref-add.sed
+Only in diffutils-3.0-patch/lib: ref-add.sin
+Only in diffutils-3.0-patch/lib: ref-del.sed
+Only in diffutils-3.0-patch/lib: ref-del.sin
+Only in diffutils-3.0-patch/lib: regcomp.c
+Only in diffutils-3.0-patch/lib: regex.c
+Only in diffutils-3.0-patch/lib: regex.h
+Only in diffutils-3.0-patch/lib: regex.o
+Only in diffutils-3.0-patch/lib: regex_internal.c
+Only in diffutils-3.0-patch/lib: regex_internal.h
+Only in diffutils-3.0-patch/lib: regexec.c
+Only in diffutils-3.0-patch/lib: sh-quote.c
+Only in diffutils-3.0-patch/lib: sh-quote.h
+Only in diffutils-3.0-patch/lib: sh-quote.o
+Only in diffutils-3.0-patch/lib: sig-handler.h
+Only in diffutils-3.0-patch/lib: sigaction.c
+Only in diffutils-3.0-patch/lib: signal.h
+Only in diffutils-3.0-patch/lib: signal.in.h
+Only in diffutils-3.0-patch/lib: sigprocmask.c
+Only in diffutils-3.0-patch/lib: stamp-h1
+Only in diffutils-3.0-patch/lib: stat-macros.h
+Only in diffutils-3.0-patch/lib: stat-time.h
+Only in diffutils-3.0-patch/lib: stat.c
+Only in diffutils-3.0-patch/lib: stdarg.in.h
+Only in diffutils-3.0-patch/lib: stdbool.in.h
+Only in diffutils-3.0-patch/lib: stddef.in.h
+Only in diffutils-3.0-patch/lib: stdint.in.h
+Only in diffutils-3.0-patch/lib: stdio--.h
+Only in diffutils-3.0-patch/lib: stdio-safer.h
+Only in diffutils-3.0-patch/lib: stdio-write.c
+Only in diffutils-3.0-patch/lib: stdio.h
+Only in diffutils-3.0-patch/lib: stdio.in.h
+Only in diffutils-3.0-patch/lib: stdlib.h
+Only in diffutils-3.0-patch/lib: stdlib.in.h
+Only in diffutils-3.0-patch/lib: str-kmp.h
+Only in diffutils-3.0-patch/lib: strcasecmp.c
+Only in diffutils-3.0-patch/lib: streq.h
+Only in diffutils-3.0-patch/lib: strerror.c
+Only in diffutils-3.0-patch/lib: strftime.c
+Only in diffutils-3.0-patch/lib: strftime.h
+Only in diffutils-3.0-patch/lib: strftime.o
+Only in diffutils-3.0-patch/lib: striconv.c
+Only in diffutils-3.0-patch/lib: striconv.h
+Only in diffutils-3.0-patch/lib: striconv.o
+Only in diffutils-3.0-patch/lib: string.h
+Only in diffutils-3.0-patch/lib: string.in.h
+Only in diffutils-3.0-patch/lib: strings.h
+Only in diffutils-3.0-patch/lib: strings.in.h
+Only in diffutils-3.0-patch/lib: stripslash.c
+Only in diffutils-3.0-patch/lib: stripslash.o
+Only in diffutils-3.0-patch/lib: strncasecmp.c
+Only in diffutils-3.0-patch/lib: strndup.c
+Only in diffutils-3.0-patch/lib: strnlen.c
+Only in diffutils-3.0-patch/lib: strnlen1.c
+Only in diffutils-3.0-patch/lib: strnlen1.h
+Only in diffutils-3.0-patch/lib: strnlen1.o
+Only in diffutils-3.0-patch/lib: strptime.c
+Only in diffutils-3.0-patch/lib: strtoimax.c
+Only in diffutils-3.0-patch/lib: strtol.c
+Only in diffutils-3.0-patch/lib: strtoll.c
+Only in diffutils-3.0-patch/lib: strtoul.c
+Only in diffutils-3.0-patch/lib: strtoull.c
+Only in diffutils-3.0-patch/lib: strtoumax.c
+Only in diffutils-3.0-patch/lib: sys
+Only in diffutils-3.0-patch/lib: sys_stat.in.h
+Only in diffutils-3.0-patch/lib: sys_time.in.h
+Only in diffutils-3.0-patch/lib: sys_wait.in.h
+Only in diffutils-3.0-patch/lib: tempname.c
+Only in diffutils-3.0-patch/lib: tempname.h
+Only in diffutils-3.0-patch/lib: tempname.o
+Only in diffutils-3.0-patch/lib: time.h
+Only in diffutils-3.0-patch/lib: time.in.h
+Only in diffutils-3.0-patch/lib: time_r.c
+Only in diffutils-3.0-patch/lib: timegm.c
+Only in diffutils-3.0-patch/lib: timespec.h
+Only in diffutils-3.0-patch/lib: trim.c
+Only in diffutils-3.0-patch/lib: trim.h
+Only in diffutils-3.0-patch/lib: trim.o
+Only in diffutils-3.0-patch/lib: uinttostr.c
+Only in diffutils-3.0-patch/lib: uinttostr.o
+Only in diffutils-3.0-patch/lib: umaxtostr.c
+Only in diffutils-3.0-patch/lib: umaxtostr.o
+Only in diffutils-3.0-patch/lib: unistd.h
+Only in diffutils-3.0-patch/lib: unistd.in.h
+Only in diffutils-3.0-patch/lib: unitypes.h
+Only in diffutils-3.0-patch/lib: uniwidth
+Only in diffutils-3.0-patch/lib: uniwidth.h
+Only in diffutils-3.0-patch/lib: unlocked-io.h
+Only in diffutils-3.0-patch/lib: verify.h
+Only in diffutils-3.0-patch/lib: version-etc-fsf.c
+Only in diffutils-3.0-patch/lib: version-etc-fsf.o
+Only in diffutils-3.0-patch/lib: version-etc.c
+Only in diffutils-3.0-patch/lib: version-etc.h
+Only in diffutils-3.0-patch/lib: version-etc.o
+Only in diffutils-3.0-patch/lib: warn-on-use.h
+Only in diffutils-3.0-patch/lib: wchar.h
+Only in diffutils-3.0-patch/lib: wchar.in.h
+Only in diffutils-3.0-patch/lib: wcrtomb.c
+Only in diffutils-3.0-patch/lib: wctype.h
+Only in diffutils-3.0-patch/lib: wctype.in.h
+Only in diffutils-3.0-patch/lib: wcwidth.c
+Only in diffutils-3.0-patch/lib: xalloc-die.c
+Only in diffutils-3.0-patch/lib: xalloc-die.o
+Only in diffutils-3.0-patch/lib: xalloc.h
+Only in diffutils-3.0-patch/lib: xfreopen.c
+Only in diffutils-3.0-patch/lib: xfreopen.h
+Only in diffutils-3.0-patch/lib: xfreopen.o
+Only in diffutils-3.0-patch/lib: xmalloc.c
+Only in diffutils-3.0-patch/lib: xmalloc.o
+Only in diffutils-3.0-patch/lib: xstriconv.c
+Only in diffutils-3.0-patch/lib: xstriconv.h
+Only in diffutils-3.0-patch/lib: xstriconv.o
+Only in diffutils-3.0-patch/lib: xstrndup.c
+Only in diffutils-3.0-patch/lib: xstrndup.h
+Only in diffutils-3.0-patch/lib: xstrndup.o
+Only in diffutils-3.0-patch/lib: xstrtol-error.c
+Only in diffutils-3.0-patch/lib: xstrtol-error.o
+Only in diffutils-3.0-patch/lib: xstrtol.c
+Only in diffutils-3.0-patch/lib: xstrtol.h
+Only in diffutils-3.0-patch/lib: xstrtol.o
+Only in diffutils-3.0-patch/lib: xstrtoul.c
+Only in diffutils-3.0-patch/lib: xstrtoul.o
+Only in diffutils-3.0-patch/lib: xstrtoumax.c
+Only in diffutils-3.0-patch/lib: xstrtoumax.o
+Only in diffutils-3.0-patch/m4: .gitignore
+Only in diffutils-3.0-patch/m4: 00gnulib.m4
+Only in diffutils-3.0-patch/m4: alloca.m4
+Only in diffutils-3.0-patch/m4: argmatch.m4
+Only in diffutils-3.0-patch/m4: btowc.m4
+Only in diffutils-3.0-patch/m4: c-stack.m4
+Only in diffutils-3.0-patch/m4: clock_time.m4
+Only in diffutils-3.0-patch/m4: codeset.m4
+Only in diffutils-3.0-patch/m4: config-h.m4
+Only in diffutils-3.0-patch/m4: dirname.m4
+Only in diffutils-3.0-patch/m4: dos.m4
+Only in diffutils-3.0-patch/m4: double-slash-root.m4
+Only in diffutils-3.0-patch/m4: dup2.m4
+Only in diffutils-3.0-patch/m4: eealloc.m4
+Only in diffutils-3.0-patch/m4: environ.m4
+Only in diffutils-3.0-patch/m4: errno_h.m4
+Only in diffutils-3.0-patch/m4: error.m4
+Only in diffutils-3.0-patch/m4: exclude.m4
+Only in diffutils-3.0-patch/m4: extensions.m4
+Only in diffutils-3.0-patch/m4: fcntl-o.m4
+Only in diffutils-3.0-patch/m4: fcntl.m4
+Only in diffutils-3.0-patch/m4: fcntl_h.m4
+Only in diffutils-3.0-patch/m4: file-type.m4
+Only in diffutils-3.0-patch/m4: fnmatch.m4
+Only in diffutils-3.0-patch/m4: freopen.m4
+Only in diffutils-3.0-patch/m4: getdtablesize.m4
+Only in diffutils-3.0-patch/m4: getopt.m4
+Only in diffutils-3.0-patch/m4: gettext.m4
+Only in diffutils-3.0-patch/m4: gettime.m4
+Only in diffutils-3.0-patch/m4: gettimeofday.m4
+Only in diffutils-3.0-patch/m4: glibc21.m4
+Only in diffutils-3.0-patch/m4: gnu-make.m4
+Only in diffutils-3.0-patch/m4: gnulib-cache.m4
+Only in diffutils-3.0-patch/m4: gnulib-common.m4
+Only in diffutils-3.0-patch/m4: gnulib-comp.m4
+Only in diffutils-3.0-patch/m4: gnulib-tool.m4
+Only in diffutils-3.0-patch/m4: hard-locale.m4
+Only in diffutils-3.0-patch/m4: hash.m4
+Only in diffutils-3.0-patch/m4: iconv.m4
+Only in diffutils-3.0-patch/m4: iconv_h.m4
+Only in diffutils-3.0-patch/m4: iconv_open.m4
+Only in diffutils-3.0-patch/m4: include_next.m4
+Only in diffutils-3.0-patch/m4: inline.m4
+Only in diffutils-3.0-patch/m4: intl.m4
+Only in diffutils-3.0-patch/m4: intldir.m4
+Only in diffutils-3.0-patch/m4: intlmacosx.m4
+Only in diffutils-3.0-patch/m4: intmax.m4
+Only in diffutils-3.0-patch/m4: inttostr.m4
+Only in diffutils-3.0-patch/m4: inttypes-pri.m4
+Only in diffutils-3.0-patch/m4: inttypes.m4
+Only in diffutils-3.0-patch/m4: inttypes_h.m4
+Only in diffutils-3.0-patch/m4: langinfo_h.m4
+Only in diffutils-3.0-patch/m4: lib-ld.m4
+Only in diffutils-3.0-patch/m4: lib-link.m4
+Only in diffutils-3.0-patch/m4: lib-prefix.m4
+Only in diffutils-3.0-patch/m4: libsigsegv.m4
+Only in diffutils-3.0-patch/m4: localcharset.m4
+Only in diffutils-3.0-patch/m4: locale-fr.m4
+Only in diffutils-3.0-patch/m4: locale-ja.m4
+Only in diffutils-3.0-patch/m4: locale-tr.m4
+Only in diffutils-3.0-patch/m4: locale-zh.m4
+Only in diffutils-3.0-patch/m4: longlong.m4
+Only in diffutils-3.0-patch/m4: lstat.m4
+Only in diffutils-3.0-patch/m4: malloc.m4
+Only in diffutils-3.0-patch/m4: malloca.m4
+Only in diffutils-3.0-patch/m4: manywarnings.m4
+Only in diffutils-3.0-patch/m4: mbchar.m4
+Only in diffutils-3.0-patch/m4: mbiter.m4
+Only in diffutils-3.0-patch/m4: mbrlen.m4
+Only in diffutils-3.0-patch/m4: mbrtowc.m4
+Only in diffutils-3.0-patch/m4: mbsinit.m4
+Only in diffutils-3.0-patch/m4: mbslen.m4
+Only in diffutils-3.0-patch/m4: mbsrtowcs.m4
+Only in diffutils-3.0-patch/m4: mbstate_t.m4
+Only in diffutils-3.0-patch/m4: memchr.m4
+Only in diffutils-3.0-patch/m4: mkstemp.m4
+Only in diffutils-3.0-patch/m4: mktime.m4
+Only in diffutils-3.0-patch/m4: mmap-anon.m4
+Only in diffutils-3.0-patch/m4: mode_t.m4
+Only in diffutils-3.0-patch/m4: multiarch.m4
+Only in diffutils-3.0-patch/m4: nl_langinfo.m4
+Only in diffutils-3.0-patch/m4: nls.m4
+Only in diffutils-3.0-patch/m4: open.m4
+Only in diffutils-3.0-patch/m4: pathmax.m4
+Only in diffutils-3.0-patch/m4: po.m4
+Only in diffutils-3.0-patch/m4: progtest.m4
+Only in diffutils-3.0-patch/m4: putenv.m4
+Only in diffutils-3.0-patch/m4: quote.m4
+Only in diffutils-3.0-patch/m4: quotearg.m4
+Only in diffutils-3.0-patch/m4: regex.m4
+Only in diffutils-3.0-patch/m4: setenv.m4
+Only in diffutils-3.0-patch/m4: sigaction.m4
+Only in diffutils-3.0-patch/m4: signal_h.m4
+Only in diffutils-3.0-patch/m4: signalblocking.m4
+Only in diffutils-3.0-patch/m4: sleep.m4
+Only in diffutils-3.0-patch/m4: ssize_t.m4
+Only in diffutils-3.0-patch/m4: stat-time.m4
+Only in diffutils-3.0-patch/m4: stat.m4
+Only in diffutils-3.0-patch/m4: stdarg.m4
+Only in diffutils-3.0-patch/m4: stdbool.m4
+Only in diffutils-3.0-patch/m4: stddef_h.m4
+Only in diffutils-3.0-patch/m4: stdint.m4
+Only in diffutils-3.0-patch/m4: stdint_h.m4
+Only in diffutils-3.0-patch/m4: stdio-safer.m4
+Only in diffutils-3.0-patch/m4: stdio_h.m4
+Only in diffutils-3.0-patch/m4: stdlib_h.m4
+Only in diffutils-3.0-patch/m4: strcase.m4
+Only in diffutils-3.0-patch/m4: strerror.m4
+Only in diffutils-3.0-patch/m4: strftime.m4
+Only in diffutils-3.0-patch/m4: string_h.m4
+Only in diffutils-3.0-patch/m4: strings_h.m4
+Only in diffutils-3.0-patch/m4: strndup.m4
+Only in diffutils-3.0-patch/m4: strnlen.m4
+Only in diffutils-3.0-patch/m4: strptime.m4
+Only in diffutils-3.0-patch/m4: strtoimax.m4
+Only in diffutils-3.0-patch/m4: strtol.m4
+Only in diffutils-3.0-patch/m4: strtoll.m4
+Only in diffutils-3.0-patch/m4: strtoul.m4
+Only in diffutils-3.0-patch/m4: strtoull.m4
+Only in diffutils-3.0-patch/m4: strtoumax.m4
+Only in diffutils-3.0-patch/m4: symlink.m4
+Only in diffutils-3.0-patch/m4: sys_stat_h.m4
+Only in diffutils-3.0-patch/m4: sys_time_h.m4
+Only in diffutils-3.0-patch/m4: sys_wait_h.m4
+Only in diffutils-3.0-patch/m4: tempname.m4
+Only in diffutils-3.0-patch/m4: threadlib.m4
+Only in diffutils-3.0-patch/m4: time_h.m4
+Only in diffutils-3.0-patch/m4: time_r.m4
+Only in diffutils-3.0-patch/m4: timegm.m4
+Only in diffutils-3.0-patch/m4: timespec.m4
+Only in diffutils-3.0-patch/m4: tm_gmtoff.m4
+Only in diffutils-3.0-patch/m4: unistd_h.m4
+Only in diffutils-3.0-patch/m4: unlocked-io.m4
+Only in diffutils-3.0-patch/m4: usleep.m4
+Only in diffutils-3.0-patch/m4: version-etc.m4
+Only in diffutils-3.0-patch/m4: warn-on-use.m4
+Only in diffutils-3.0-patch/m4: warnings.m4
+Only in diffutils-3.0-patch/m4: wchar_h.m4
+Only in diffutils-3.0-patch/m4: wchar_t.m4
+Only in diffutils-3.0-patch/m4: wcrtomb.m4
+Only in diffutils-3.0-patch/m4: wctob.m4
+Only in diffutils-3.0-patch/m4: wctype_h.m4
+Only in diffutils-3.0-patch/m4: wcwidth.m4
+Only in diffutils-3.0-patch/m4: wint_t.m4
+Only in diffutils-3.0-patch/m4: xalloc.m4
+Only in diffutils-3.0-patch/m4: xstrndup.m4
+Only in diffutils-3.0-patch/m4: xstrtol.m4
+Only in diffutils-3.0-patch: maint.mk
+Only in diffutils-3.0-patch/man: Makefile
+Only in diffutils-3.0-patch/man: Makefile.in
+Only in diffutils-3.0-patch/man: cmp.1
+Only in diffutils-3.0-patch/man: diff.1
+Only in diffutils-3.0-patch/man: diff3.1
+Only in diffutils-3.0-patch/man: sdiff.1
+Only in diffutils-3.0-patch/ms: Makefile
+Only in diffutils-3.0-patch/ms: Makefile.in
+Only in diffutils-3.0-patch/po: .gitignore
+Only in diffutils-3.0-patch/po: .reference
+Only in diffutils-3.0-patch/po: LINGUAS
+Only in diffutils-3.0-patch/po: Makefile
+Only in diffutils-3.0-patch/po: Makefile.in
+Only in diffutils-3.0-patch/po: Makefile.in.in
+Only in diffutils-3.0-patch/po: Makevars
+Only in diffutils-3.0-patch/po: Makevars.template
+Only in diffutils-3.0-patch/po: POTFILES
+Only in diffutils-3.0-patch/po: Rules-quot
+Only in diffutils-3.0-patch/po: bg.gmo
+Only in diffutils-3.0-patch/po: bg.po
+Only in diffutils-3.0-patch/po: bg.po~
+Only in diffutils-3.0-patch/po: boldquot.sed
+Only in diffutils-3.0-patch/po: ca.gmo
+Only in diffutils-3.0-patch/po: ca.po
+Only in diffutils-3.0-patch/po: ca.po~
+Only in diffutils-3.0-patch/po: cs.gmo
+Only in diffutils-3.0-patch/po: cs.po
+Only in diffutils-3.0-patch/po: cs.po~
+Only in diffutils-3.0-patch/po: da.gmo
+Only in diffutils-3.0-patch/po: da.po
+Only in diffutils-3.0-patch/po: da.po~
+Only in diffutils-3.0-patch/po: de.gmo
+Only in diffutils-3.0-patch/po: de.po
+Only in diffutils-3.0-patch/po: de.po~
+Only in diffutils-3.0-patch/po: diffutils.pot
+Only in diffutils-3.0-patch/po: el.gmo
+Only in diffutils-3.0-patch/po: el.po
+Only in diffutils-3.0-patch/po: el.po~
+Only in diffutils-3.0-patch/po: en@boldquot.header
+Only in diffutils-3.0-patch/po: en@quot.header
+Only in diffutils-3.0-patch/po: eo.gmo
+Only in diffutils-3.0-patch/po: eo.po
+Only in diffutils-3.0-patch/po: eo.po~
+Only in diffutils-3.0-patch/po: es.gmo
+Only in diffutils-3.0-patch/po: es.po
+Only in diffutils-3.0-patch/po: es.po~
+Only in diffutils-3.0-patch/po: fi.gmo
+Only in diffutils-3.0-patch/po: fi.po
+Only in diffutils-3.0-patch/po: fi.po~
+Only in diffutils-3.0-patch/po: fr.gmo
+Only in diffutils-3.0-patch/po: fr.po
+Only in diffutils-3.0-patch/po: fr.po~
+Only in diffutils-3.0-patch/po: ga.gmo
+Only in diffutils-3.0-patch/po: ga.po
+Only in diffutils-3.0-patch/po: ga.po~
+Only in diffutils-3.0-patch/po: gl.gmo
+Only in diffutils-3.0-patch/po: gl.po
+Only in diffutils-3.0-patch/po: gl.po~
+Only in diffutils-3.0-patch/po: he.gmo
+Only in diffutils-3.0-patch/po: he.po
+Only in diffutils-3.0-patch/po: he.po~
+Only in diffutils-3.0-patch/po: hr.gmo
+Only in diffutils-3.0-patch/po: hr.po
+Only in diffutils-3.0-patch/po: hr.po~
+Only in diffutils-3.0-patch/po: hu.gmo
+Only in diffutils-3.0-patch/po: hu.po
+Only in diffutils-3.0-patch/po: hu.po~
+Only in diffutils-3.0-patch/po: id.gmo
+Only in diffutils-3.0-patch/po: id.po
+Only in diffutils-3.0-patch/po: id.po~
+Only in diffutils-3.0-patch/po: insert-header.sin
+Only in diffutils-3.0-patch/po: it.gmo
+Only in diffutils-3.0-patch/po: it.po
+Only in diffutils-3.0-patch/po: it.po~
+Only in diffutils-3.0-patch/po: ja.gmo
+Only in diffutils-3.0-patch/po: ja.po
+Only in diffutils-3.0-patch/po: ja.po~
+Only in diffutils-3.0-patch/po: lv.gmo
+Only in diffutils-3.0-patch/po: lv.po
+Only in diffutils-3.0-patch/po: lv.po~
+Only in diffutils-3.0-patch/po: ms.gmo
+Only in diffutils-3.0-patch/po: ms.po
+Only in diffutils-3.0-patch/po: ms.po~
+Only in diffutils-3.0-patch/po: nb.gmo
+Only in diffutils-3.0-patch/po: nb.po
+Only in diffutils-3.0-patch/po: nb.po~
+Only in diffutils-3.0-patch/po: nl.gmo
+Only in diffutils-3.0-patch/po: nl.po
+Only in diffutils-3.0-patch/po: nl.po~
+Only in diffutils-3.0-patch/po: pl.gmo
+Only in diffutils-3.0-patch/po: pl.po
+Only in diffutils-3.0-patch/po: pl.po~
+Only in diffutils-3.0-patch/po: pt.gmo
+Only in diffutils-3.0-patch/po: pt.po
+Only in diffutils-3.0-patch/po: pt.po~
+Only in diffutils-3.0-patch/po: pt_BR.gmo
+Only in diffutils-3.0-patch/po: pt_BR.po
+Only in diffutils-3.0-patch/po: pt_BR.po~
+Only in diffutils-3.0-patch/po: quot.sed
+Only in diffutils-3.0-patch/po: remove-potcdate.sed
+Only in diffutils-3.0-patch/po: remove-potcdate.sin
+Only in diffutils-3.0-patch/po: ro.gmo
+Only in diffutils-3.0-patch/po: ro.po
+Only in diffutils-3.0-patch/po: ro.po~
+Only in diffutils-3.0-patch/po: ru.gmo
+Only in diffutils-3.0-patch/po: ru.po
+Only in diffutils-3.0-patch/po: ru.po~
+Only in diffutils-3.0-patch/po: sr.gmo
+Only in diffutils-3.0-patch/po: sr.po
+Only in diffutils-3.0-patch/po: sr.po~
+Only in diffutils-3.0-patch/po: stamp-po
+Only in diffutils-3.0-patch/po: sv.gmo
+Only in diffutils-3.0-patch/po: sv.po
+Only in diffutils-3.0-patch/po: sv.po~
+Only in diffutils-3.0-patch/po: tr.gmo
+Only in diffutils-3.0-patch/po: tr.po
+Only in diffutils-3.0-patch/po: tr.po~
+Only in diffutils-3.0-patch/po: uk.gmo
+Only in diffutils-3.0-patch/po: uk.po
+Only in diffutils-3.0-patch/po: uk.po~
+Only in diffutils-3.0-patch/po: vi.gmo
+Only in diffutils-3.0-patch/po: vi.po
+Only in diffutils-3.0-patch/po: vi.po~
+Only in diffutils-3.0-patch/po: zh_CN.gmo
+Only in diffutils-3.0-patch/po: zh_CN.po
+Only in diffutils-3.0-patch/po: zh_CN.po~
+Only in diffutils-3.0-patch/po: zh_TW.gmo
+Only in diffutils-3.0-patch/po: zh_TW.po
+Only in diffutils-3.0-patch/po: zh_TW.po~
+Only in diffutils-3.0-patch/src: .deps
+Only in diffutils-3.0-patch/src: Makefile
+Only in diffutils-3.0-patch/src: Makefile.in
+Only in diffutils-3.0-patch/src: analyze.o
+Only in diffutils-3.0-patch/src: cmp
+diff -pru diffutils-3.0/src/cmp.c diffutils-3.0-patch/src/cmp.c
+--- diffutils-3.0/src/cmp.c	2020-05-26 18:49:40.800610000 -0700
++++ diffutils-3.0-patch/src/cmp.c	2020-05-26 19:02:25.644392000 -0700
+@@ -115,7 +115,7 @@ try_help (char const *reason_msgid, char
+   if (reason_msgid)
+     error (0, 0, _(reason_msgid), operand);
+   error (EXIT_TROUBLE, 0,
+-	 _("Try `%s --help' for more information."), program_name);
++	 _("Try '%s --help' for more information."), program_name);
+   abort ();
+ }
+ 
+@@ -134,7 +134,7 @@ specify_ignore_initial (int f, char **ar
+   if (! (e == LONGINT_OK
+ 	 || (e == LONGINT_INVALID_SUFFIX_CHAR && **argptr == delimiter))
+       || TYPE_MAXIMUM (off_t) < val)
+-    try_help ("invalid --ignore-initial value `%s'", arg);
++    try_help ("invalid --ignore-initial value '%s'", arg);
+   if (ignore_initial[f] < val)
+     ignore_initial[f] = val;
+ }
+@@ -185,7 +185,7 @@ usage (void)
+ 	  _("SKIP values may be followed by the following multiplicative suffixes:\n\
+ kB 1000, K 1024, MB 1,000,000, M 1,048,576,\n\
+ GB 1,000,000,000, G 1,073,741,824, and so on for T, P, E, Z, Y."),
+-	  _("If a FILE is `-' or missing, read standard input."),
++	  _("If a FILE is '-' or missing, read standard input."),
+ 	  _("Exit status is 0 if inputs are the same, 1 if different, 2 if trouble."));
+   emit_bug_reporting_address ();
+ }
+@@ -231,7 +231,7 @@ main (int argc, char **argv)
+ 	{
+ 	  uintmax_t n;
+ 	  if (xstrtoumax (optarg, 0, 0, &n, valid_suffixes) != LONGINT_OK)
+-	    try_help ("invalid --bytes value `%s'", optarg);
++	    try_help ("invalid --bytes value '%s'", optarg);
+ 	  if (n < bytes)
+ 	    bytes = n;
+ 	}
+@@ -257,7 +257,7 @@ main (int argc, char **argv)
+       }
+ 
+   if (optind == argc)
+-    try_help ("missing operand after `%s'", argv[argc - 1]);
++    try_help ("missing operand after '%s'", argv[argc - 1]);
+ 
+   file[0] = argv[optind++];
+   file[1] = optind < argc ? argv[optind++] : "-";
+@@ -269,7 +269,7 @@ main (int argc, char **argv)
+     }
+ 
+   if (optind < argc)
+-    try_help ("extra operand `%s'", argv[optind]);
++    try_help ("extra operand '%s'", argv[optind]);
+ 
+   for (f = 0; f < 2; f++)
+     {
+Only in diffutils-3.0-patch/src: cmp.o
+Only in diffutils-3.0-patch/src: context.o
+Only in diffutils-3.0-patch/src: diff
+diff -pru diffutils-3.0/src/diff.c diffutils-3.0-patch/src/diff.c
+--- diffutils-3.0/src/diff.c	2020-05-26 18:49:40.806610000 -0700
++++ diffutils-3.0-patch/src/diff.c	2020-05-26 19:02:25.648387000 -0700
+@@ -330,7 +330,7 @@ main (int argc, char **argv)
+ 	      {
+ 		numval = strtoumax (optarg, &numend, 10);
+ 		if (*numend)
+-		  try_help ("invalid context length `%s'", optarg);
++		  try_help ("invalid context length '%s'", optarg);
+ 		if (LIN_MAX < numval)
+ 		  numval = LIN_MAX;
+ 	      }
+@@ -505,7 +505,7 @@ main (int argc, char **argv)
+ 	case 'W':
+ 	  numval = strtoumax (optarg, &numend, 10);
+ 	  if (! (0 < numval && numval <= SIZE_MAX) || *numend)
+-	    try_help ("invalid width `%s'", optarg);
++	    try_help ("invalid width '%s'", optarg);
+ 	  if (width != numval)
+ 	    {
+ 	      if (width)
+@@ -534,7 +534,7 @@ main (int argc, char **argv)
+ 	case HORIZON_LINES_OPTION:
+ 	  numval = strtoumax (optarg, &numend, 10);
+ 	  if (*numend)
+-	    try_help ("invalid horizon length `%s'", optarg);
++	    try_help ("invalid horizon length '%s'", optarg);
+ 	  horizon_lines = MAX (horizon_lines, MIN (numval, LIN_MAX));
+ 	  break;
+ 
+@@ -585,7 +585,7 @@ main (int argc, char **argv)
+ 	case TABSIZE_OPTION:
+ 	  numval = strtoumax (optarg, &numend, 10);
+ 	  if (! (0 < numval && numval <= SIZE_MAX) || *numend)
+-	    try_help ("invalid tabsize `%s'", optarg);
++	    try_help ("invalid tabsize '%s'", optarg);
+ 	  if (tabsize != numval)
+ 	    {
+ 	      if (tabsize)
+@@ -744,9 +744,9 @@ main (int argc, char **argv)
+ 	  if (argc - optind != 2)
+ 	    {
+ 	      if (argc - optind < 2)
+-		try_help ("missing operand after `%s'", argv[argc - 1]);
++		try_help ("missing operand after '%s'", argv[argc - 1]);
+ 	      else
+-		try_help ("extra operand `%s'", argv[optind + 2]);
++		try_help ("extra operand '%s'", argv[optind + 2]);
+ 	    }
+ 
+ 	  exit_status = compare_files (NULL, argv[optind], argv[optind + 1]);
+@@ -826,7 +826,7 @@ try_help (char const *reason_msgid, char
+ {
+   if (reason_msgid)
+     error (0, 0, _(reason_msgid), operand);
+-  error (EXIT_TROUBLE, 0, _("Try `%s --help' for more information."),
++  error (EXIT_TROUBLE, 0, _("Try '%s --help' for more information."),
+ 	 program_name);
+   abort ();
+ }
+@@ -870,11 +870,11 @@ static char const * const option_help_ms
+   -W NUM  --width=NUM  Output at most NUM (default 130) print columns.\n\
+   --left-column  Output only the left column of common lines.\n\
+   --suppress-common-lines  Do not output common lines."),
+-  N_("-D NAME  --ifdef=NAME  Output merged file to show `#ifdef NAME' diffs."),
++  N_("-D NAME  --ifdef=NAME  Output merged file to show '#ifdef NAME' diffs."),
+   N_("--GTYPE-group-format=GFMT  Similar, but format GTYPE input groups with GFMT."),
+   N_("--line-format=LFMT  Similar, but format all input lines with LFMT."),
+   N_("--LTYPE-line-format=LFMT  Similar, but format LTYPE input lines with LFMT."),
+-  N_("  LTYPE is `old', `new', or `unchanged'.  GTYPE is LTYPE or `changed'."),
++  N_("  LTYPE is 'old', 'new', or 'unchanged'.  GTYPE is LTYPE or 'changed'."),
+   N_("  GFMT may contain:\n\
+     %<  lines from FILE1\n\
+     %>  lines from FILE2\n\
+@@ -895,7 +895,7 @@ static char const * const option_help_ms
+     %c'C'  the single character C\n\
+     %c'\\OOO'  the character with octal code OOO"),
+   "",
+-  N_("-l  --paginate  Pass the output through `pr' to paginate it."),
++  N_("-l  --paginate  Pass the output through 'pr' to paginate it."),
+   N_("-t  --expand-tabs  Expand tabs to spaces in output."),
+   N_("-T  --initial-tab  Make tabs line up by prepending a tab."),
+   N_("--tabsize=NUM  Tab stops are every NUM (default 8) print columns."),
+@@ -918,9 +918,9 @@ static char const * const option_help_ms
+   N_("-v  --version  Output version info."),
+   N_("--help  Output this help."),
+   "",
+-  N_("FILES are `FILE1 FILE2' or `DIR1 DIR2' or `DIR FILE...' or `FILE... DIR'."),
++  N_("FILES are 'FILE1 FILE2' or 'DIR1 DIR2' or 'DIR FILE...' or 'FILE... DIR'."),
+   N_("If --from-file or --to-file is given, there are no restrictions on FILES."),
+-  N_("If a FILE is `-', read standard input."),
++  N_("If a FILE is '-', read standard input."),
+   N_("Exit status is 0 if inputs are the same, 1 if different, 2 if trouble."),
+   0
+ };
+@@ -960,7 +960,7 @@ specify_value (char const **var, char co
+ {
+   if (*var && strcmp (*var, value) != 0)
+     {
+-      error (0, 0, _("conflicting %s option value `%s'"), option, value);
++      error (0, 0, _("conflicting %s option value '%s'"), option, value);
+       try_help (NULL, NULL);
+     }
+   *var = value;
+@@ -1159,7 +1159,7 @@ compare_files (struct comparison const *
+ 	= dir_file_pathname (dir, last_component (fnm));
+ 
+       if (STREQ (fnm, "-"))
+-	fatal ("cannot compare `-' to a directory");
++	fatal ("cannot compare '-' to a directory");
+ 
+       if (stat (filename, &cmp.file[dir_arg].stat) != 0)
+ 	{
+Only in diffutils-3.0-patch/src: diff.o
+Only in diffutils-3.0-patch/src: diff3
+diff -pru diffutils-3.0/src/diff3.c diffutils-3.0-patch/src/diff3.c
+--- diffutils-3.0/src/diff3.c	2020-05-26 18:49:40.811610000 -0700
++++ diffutils-3.0-patch/src/diff3.c	2020-05-26 19:02:25.779392000 -0700
+@@ -316,9 +316,9 @@ main (int argc, char **argv)
+   if (argc - optind != 3)
+     {
+       if (argc - optind < 3)
+-	try_help ("missing operand after `%s'", argv[argc - 1]);
++	try_help ("missing operand after '%s'", argv[argc - 1]);
+       else
+-	try_help ("extra operand `%s'", argv[optind + 3]);
++	try_help ("extra operand '%s'", argv[optind + 3]);
+     }
+ 
+   file = &argv[optind];
+@@ -351,7 +351,7 @@ main (int argc, char **argv)
+ 	 file instead.  */
+       common = 3 - common;
+       if (STREQ (file[0], "-") || STREQ (file[common], "-"))
+-	fatal ("`-' specified for more than one input file");
++	fatal ("'-' specified for more than one input file");
+     }
+ 
+   mapping[0] = 0;
+@@ -412,7 +412,7 @@ try_help (char const *reason_msgid, char
+   if (reason_msgid)
+     error (0, 0, _(reason_msgid), operand);
+   error (EXIT_TROUBLE, 0,
+-	 _("Try `%s --help' for more information."), program_name);
++	 _("Try '%s --help' for more information."), program_name);
+   abort ();
+ }
+ 
+@@ -435,7 +435,7 @@ static char const * const option_help_ms
+   "",
+   N_("-m  --merge  Output merged file instead of ed script (default -A)."),
+   N_("-L LABEL  --label=LABEL  Use LABEL instead of file name."),
+-  N_("-i  Append `w' and `q' commands to ed scripts."),
++  N_("-i  Append 'w' and 'q' commands to ed scripts."),
+   N_("-a  --text  Treat all files as text."),
+   N_("--strip-trailing-cr  Strip trailing carriage return on input."),
+   N_("-T  --initial-tab  Make tabs line up by prepending a tab."),
+@@ -460,7 +460,7 @@ usage (void)
+     else
+       putchar ('\n');
+   printf ("\n%s\n%s\n",
+-	  _("If a FILE is `-', read standard input."),
++	  _("If a FILE is '-', read standard input."),
+ 	  _("Exit status is 0 if successful, 1 if conflicts, 2 if trouble."));
+   emit_bug_reporting_address ();
+ }
+@@ -1275,12 +1275,12 @@ read_diff (char const *filea,
+   if (EXIT_TROUBLE <= status)
+     error (EXIT_TROUBLE, werrno,
+ 	   _(status == 126
+-	     ? "subsidiary program `%s' could not be invoked"
++	     ? "subsidiary program '%s' could not be invoked"
+ 	     : status == 127
+-	     ? "subsidiary program `%s' not found"
++	     ? "subsidiary program '%s' not found"
+ 	     : status == INT_MAX
+-	     ? "subsidiary program `%s' failed"
+-	     : "subsidiary program `%s' failed (exit status %d)"),
++	     ? "subsidiary program '%s' failed"
++	     : "subsidiary program '%s' failed (exit status %d)"),
+ 	   diff_program, status);
+ 
+   return diff_result + total;
+Only in diffutils-3.0-patch/src: diff3.o
+diff -pru diffutils-3.0/src/dir.c diffutils-3.0-patch/src/dir.c
+--- diffutils-3.0/src/dir.c	2020-05-26 18:49:40.812612000 -0700
++++ diffutils-3.0-patch/src/dir.c	2020-05-26 19:02:25.780393000 -0700
+@@ -154,7 +154,7 @@ compare_names (char const *name1, char c
+ 	r = strcoll (name1, name2);
+       if (errno)
+ 	{
+-	  error (0, errno, _("cannot compare file names `%s' and `%s'"),
++	  error (0, errno, _("cannot compare file names '%s' and '%s'"),
+ 		 name1, name2);
+ 	  longjmp (failed_locale_specific_sorting, 1);
+ 	}
+Only in diffutils-3.0-patch/src: dir.o
+Only in diffutils-3.0-patch/src: ed.o
+Only in diffutils-3.0-patch/src: ifdef.o
+Only in diffutils-3.0-patch/src: io.o
+Only in diffutils-3.0-patch/src: normal.o
+Only in diffutils-3.0-patch/src: paths.h
+Only in diffutils-3.0-patch/src: sdiff
+diff -pru diffutils-3.0/src/sdiff.c diffutils-3.0-patch/src/sdiff.c
+--- diffutils-3.0/src/sdiff.c	2020-05-26 18:49:40.822611000 -0700
++++ diffutils-3.0-patch/src/sdiff.c	2020-05-26 19:02:25.785396000 -0700
+@@ -175,7 +175,7 @@ try_help (char const *reason_msgid, char
+ {
+   if (reason_msgid)
+     error (0, 0, _(reason_msgid), operand);
+-  error (EXIT_TROUBLE, 0, _("Try `%s --help' for more information."),
++  error (EXIT_TROUBLE, 0, _("Try '%s --help' for more information."),
+ 	 program_name);
+   abort ();
+ }
+@@ -230,7 +230,7 @@ usage (void)
+     else
+       putchar ('\n');
+   printf ("\n%s\n%s\n",
+-	  _("If a FILE is `-', read standard input."),
++	  _("If a FILE is '-', read standard input."),
+ 	  _("Exit status is 0 if inputs are the same, 1 if different, 2 if trouble."));
+   emit_bug_reporting_address ();
+ }
+@@ -286,12 +286,12 @@ check_child_status (int werrno, int wsta
+     {
+       error (0, werrno,
+ 	     _(status == 126
+-	       ? "subsidiary program `%s' could not be invoked"
++	       ? "subsidiary program '%s' could not be invoked"
+ 	       : status == 127
+-	       ? "subsidiary program `%s' not found"
++	       ? "subsidiary program '%s' not found"
+ 	       : status == INT_MAX
+-	       ? "subsidiary program `%s' failed"
+-	       : "subsidiary program `%s' failed (exit status %d)"),
++	       ? "subsidiary program '%s' failed"
++	       : "subsidiary program '%s' failed (exit status %d)"),
+ 	     subsidiary_program, status);
+       exiterr ();
+     }
+@@ -572,9 +572,9 @@ main (int argc, char *argv[])
+   if (argc - optind != 2)
+     {
+       if (argc - optind < 2)
+-	try_help ("missing operand after `%s'", argv[argc - 1]);
++	try_help ("missing operand after '%s'", argv[argc - 1]);
+       else
+-	try_help ("extra operand `%s'", argv[optind + 2]);
++	try_help ("extra operand '%s'", argv[optind + 2]);
+     }
+ 
+   if (! output)
+Only in diffutils-3.0-patch/src: sdiff.o
+Only in diffutils-3.0-patch/src: side.o
+diff -pru diffutils-3.0/src/util.c diffutils-3.0-patch/src/util.c
+--- diffutils-3.0/src/util.c	2020-05-26 18:49:40.827610000 -0700
++++ diffutils-3.0-patch/src/util.c	2020-05-26 19:02:25.790392000 -0700
+@@ -298,12 +298,12 @@ finish_output (void)
+       if (status)
+ 	error (EXIT_TROUBLE, werrno,
+ 	       _(status == 126
+-		 ? "subsidiary program `%s' could not be invoked"
++		 ? "subsidiary program '%s' could not be invoked"
+ 		 : status == 127
+-		 ? "subsidiary program `%s' not found"
++		 ? "subsidiary program '%s' not found"
+ 		 : status == INT_MAX
+-		 ? "subsidiary program `%s' failed"
+-		 : "subsidiary program `%s' failed (exit status %d)"),
++		 ? "subsidiary program '%s' failed"
++		 : "subsidiary program '%s' failed (exit status %d)"),
+ 	       pr_program, status);
+     }
+ 
+Only in diffutils-3.0-patch/src: util.o
+Only in diffutils-3.0-patch/tests: Makefile
+Only in diffutils-3.0-patch/tests: Makefile.in
