@@ -28,3 +28,16 @@ However, adding your private key to ssh-agent will solve this as OpenSSH will ta
 		- enter password that is protecting private key
 
 Now connecting from one SEAS server (acting as client) to another SEAS server requires a password that is automatically provided by my ssh-agent daemon.
+
+With this, convenient "daisy-chain" connections can be made. If I need to 
+connect to server2 through server1, then I can run the command
+[ssh -At user@server1 ssh -A user@server2] - No intermediary passwords are 
+needed!
+
+The -A flag is for "agent forwarding." If I am connecting from server0 to 
+server2, through server1, then the -A flag would forward the ssh 
+authentication agent from server0 where it exists, to server1. server1 then 
+can be authenticated because it now can provide the private key to server2's 
+challenge. Note that the public key generated/owned by server0 is passed 
+along the way to server1 and server2, as part of the standard flow of 
+client-server authentication.
