@@ -1,0 +1,187 @@
+Alex Chen
+005299047
+Assignment 9
+Laboratory
+
+-------------
+
+1) Disk space
+
+[man du] to determine that du will estimate file space usage of provided 
+files; the -c option will provided a total of the whole directory/file,
+the -h option will print sizes in a human readable format, and the -s option 
+will provide only a count for the provided file instead of the internal files 
+as well. To exclude a directory, use the --exclude=PATTERN option, where 
+PATTERN is a shell pattern (not regex).
+
+[du -hc .git]: The Git repository takes up a total of 415M (415E6) bytes.
+
+Out of these repository files, the .git/objects directory consume most of the 
+direfctory space (414M out of 415M bytes). This is because the objects 
+directory is where the actual commit, blob, tree, and annotated tag objects 
+are actually stored, and these objects form the full version history of the 
+repository, which is what would take up the most space.
+
+[du -shc --exclude='.git' .]: The working files in this directory take up a 
+total of 163M bytes.
+
+2) Local and remote branches
+
+Based on the man pages, the --list option alone will list all of the local 
+branches, while adding the -r option will list all of the remote-tracking 
+branches.
+
+[git branch --list | wc -l] shows that there are 176 local branches.
+[git branch --list -r | wc -l] shows that there are 177 remote branches.
+
+3) Remote repositories
+
+Based on the man pages, git-remote will list all of the existing remote 
+repositories. With the verbose option (-v), the url of the repository 
+is also displayed.
+
+[git remote -v] shows that there are two remote repositories, origin and 
+savannah, present at "/u/cs/fac/eggert/src/gnu/emacs" and 
+"https://git.savannah.gnu.org/git/emacs.git".
+
+4) 10 most recent local branches committed to
+
+[git for-each-ref --sort=committerdate refs/heads
+--format='%(refname:short)'] will list all of the local branches that 
+were committed to, by order of commit date, and format it so that 
+only the branch names show, as compared to the branch location in the 
+refs folder. Note that the refs/heads directory contains all the pointers 
+to local branches.
+
+Replacing the --format option with 
+[--format='%(committerdate:short) %(authorname) %(refname:short)'] will 
+also show the actual commit date. This shows that the branches are listed 
+from oldest to newest in terms of commit time.
+
+Local branches, from most to least recent commit date:
+
+master
+scratch/joaot/make-completion-at-point-function
+feature/windows-with-utils
+scratch/completion-api
+scratch/a-modest-completion-redesign-proposal
+scratch/fido-mode
+feature/gnus-select2
+feature/extend_face_id
+scratch/jit-lock-antiblink-cleaned-up
+emacs-26
+
+Last 10 local branches committed to, before re-ordering:
+
+2019-10-07 Leo Liu emacs-26
+2019-10-10 João Távora scratch/jit-lock-antiblink-cleaned-up
+2019-10-14 Jimmy Aguilar Mena feature/extend_face_id
+2019-11-03 Andrew G Cohen feature/gnus-select2
+2019-11-05 João Távora scratch/fido-mode
+2019-11-10 João Távora scratch/a-modest-completion-redesign-proposal
+2019-11-16 Stefan Monnier scratch/completion-api
+2019-11-18 Phillip Lord feature/windows-with-utils
+2019-11-20 João Távora scratch/joaot/make-completion-at-point-function
+2020-05-24 Stefan Kangas master
+
+5) Total # of commits in the master branch: 141268
+
+From the man pages, git-rev-list will list all the commits reachable from 
+the included commit(s).
+
+[git rev-list master --count] shows that there are 141268 
+commits in the master branch (all commits reachable from master)
+
+6) Percentage of commits in the master branch of all commits: 145595
+
+[git rev-list --all --count] will show how many commits there are 
+in any branch: 145595
+
+141268/145595 = 97.0%. 97.0% of commits are in the master branch.
+
+7) 10 authors who made the most commits
+
+From git-shortlog man pages: the -n option will order output by commits per 
+author, and the -s option will provide only a commit count.
+
+From the git-log man page, the --since and --until options can be used to 
+specify a time range for the output of git-log/shortlog. Note that 
+git-shortlog is functionally the same as git-log, except that the output is 
+summarized as if executing git-log --pretty=short.
+
+[git shortlog -ns --since="2013-01-01 00:00:00"] to get the authors of commits 
+since the beginning of 2013. Note that the --since/--after options are 
+identical to Git, both meaning literally after the date and time provided.
+
+I ran 
+[git log --author="Paul Eggert" --since="2013-01-01 00:00:00" --pretty | less] 
+to ensure that the commits were truly captured from the start of 2013.
+
+Number of commits since 2013 followed by the name of the commit author:
+
+3922  Eli Zaretskii
+3795  Glenn Morris
+3785  Paul Eggert
+1887  Stefan Monnier
+1833  Lars Ingebrigtsen
+1671  Michael Albinus
+671  Dmitry Gutov
+604  Noam Postavsky
+568  Juri Linkov
+506  Alan Mackenzie
+
+8) Visualize the commit graph with gitk
+
+[ssh -X lichy@lnxsrv07.seas.ucla.edu] to ssh with X11 forwarding enabled
+
+[cd ~eggert/src/gnu/emacs-CS-35L], [gitk] to open the commit graph visual
+
+Of the provided commits, these are the merge commits (which I determined by 
+typing in the first few characters of the commit into the "SHA1 ID:" search 
+section, and looking at the view window to see if the graph represented 
+a merge):
+
+0c06b93c1e467debd401eb0b3be4652fde14fa95 (merge from origin/emacs-26)
+abcb2e62dae6aa26308f7ac9efc89247f89cbe65 (merge from origin/emacs-26)
+98ac36efe4ce4bd3a0bca76fc73ce6c7abaa4371 (merge from origin/emacs-26)
+
+
+(didn't see the lab hint so ignore this poor attempt at graphing the commits)
+
+0c06b93c1e467debd401eb0b3be4652fde14fa95
+|									   \
+|										\
+|										 \
+|										 96aaeaaffac8a93d9c8126ba77ad217a3f323fce
+|										 |											  |
+|										 |									       	  |
+|										 c3df816585c6b8953fd4075cff894ec2d9ce0596     |
+|										  \											  /
+|										   \										 /
+|											\										/
+|											5490ccc5ebf39759dfd084bbd31f464701a3e775
+|											|
+|											|
+|											...
+|											|
+|											|
+|											625cee531623feddbe3174fad52c7db96ec60bb3
+|											|
+|											|
+...											|
+|											|
+|											|										
+198ba449845ffa557ac272c3219c703148648f53	|
+|											|
+|											|
+8081df26911c63aadfce4ee8f6a7223d814baeaf	|
+|											|
+|										   /
+977cd6cb28a37744966ec62f70cf62659f6f302a  /
+\										 /
+ \										/
+  4ea37c2b8b0c5a68fde59770c3536195e0972217
+
+
+
+
