@@ -12,3 +12,4 @@ My solutions to CS 35L: Software Construction Laboratory (TA Joe Halabi, Profess
 | 7 (Dynamic linking) | 100 |  |
 | 8 (Git) | 100 |  |
 | 9 (Git internals) | 97.2 | failed determinism test |
+| 10 (CS R&D report) | 85 | failed determinism test |
