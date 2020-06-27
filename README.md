@@ -10,6 +10,6 @@ My solutions to CS 35L: Software Construction Laboratory (TA Joe Halabi, Profess
 | 5 | Buffered I/O in C | 98 | patched fix should also consider nanoseconds comparison |
 | 6 | System calls & unbuffered I/O | 100 |  |
 | 7 | Dynamic linking | 100 |  |
-| 8 | Git | 100 |  |
+| 8 | Git & backported changes | 100 |  |
 | 9 | Git internals | 97.2 | failed determinism test |
 | 10 | CS R&D report | 85 |  |
